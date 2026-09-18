@@ -24,3 +24,151 @@ paths:
                   status:
                     type: string
                     const: UP
+  /v1/auth/register:
+    post:
+      tags:
+        - Identity
+      summary: Register an account without authenticating the user
+      operationId: registerAccount
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterAccountRequest"
+      responses:
+        "201":
+          description: Account created and pending e-mail verification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterAccountResponse"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+components:
+  schemas:
+    RegisterAccountRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+        - locale
+        - ageConfirmed
+        - acceptedTermsVersion
+        - acceptedPrivacyVersion
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 12
+          maxLength: 256
+        locale:
+          type: string
+          enum:
+            - pt-BR
+            - en-US
+        ageConfirmed:
+          type: boolean
+          const: true
+        acceptedTermsVersion:
+          type: string
+          const: terms-v0.1
+        acceptedPrivacyVersion:
+          type: string
+          const: privacy-v0.1
+    RegisterAccountResponse:
+      type: object
+      required:
+        - id
+        - email
+        - name
+        - status
+        - locale
+        - acceptedTermsVersion
+        - acceptedPrivacyVersion
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        status:
+          type: string
+          const: PENDING_EMAIL_VERIFICATION
+        locale:
+          type: string
+          enum:
+            - pt-BR
+            - en-US
+        acceptedTermsVersion:
+          type: string
+          const: terms-v0.1
+        acceptedPrivacyVersion:
+          type: string
+          const: privacy-v0.1
+        createdAt:
+          type: string
+          format: date-time
+    Problem:
+      type: object
+      required:
+        - type
+        - title
+        - status
+        - detail
+        - code
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        code:
+          type: string
+        violations:
+          type: array
+          items:
+            type: object
+            required:
+              - field
+              - code
+              - message
+            properties:
+              field:
+                type: string
+              code:
+                type: string
+              message:
+                type: string
+  responses:
+    Conflict:
+      description: Registration conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
