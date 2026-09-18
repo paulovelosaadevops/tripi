@@ -1,0 +1,15 @@
+.DS_Store
+Thumbs.db
+
+node_modules/
+.expo/
+dist/
+coverage/
+
+target/
+
+.env
+.env.*
+!.env.example
+
+*.log

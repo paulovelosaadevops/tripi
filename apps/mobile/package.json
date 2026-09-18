@@ -1,0 +1,44 @@
+{
+  "name": "@tripi/mobile",
+  "private": true,
+  "version": "0.1.0",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "15.0.2",
+    "@hookform/resolvers": "5.2.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/netinfo": "11.4.1",
+    "@tanstack/react-query": "5.103.1",
+    "@tripi/design-tokens": "0.1.0",
+    "expo": "57.0.24",
+    "expo-dev-client": "57.0.19",
+    "expo-localization": "57.0.2",
+    "expo-router": "57.0.22",
+    "expo-secure-store": "57.0.4",
+    "expo-sqlite": "57.0.3",
+    "expo-status-bar": "57.0.1",
+    "i18next": "25.5.2",
+    "react": "19.2.3",
+    "react-hook-form": "7.63.0",
+    "react-i18next": "16.0.0",
+    "react-native": "0.86.0",
+    "zod": "4.1.9",
+    "zustand": "5.0.8"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.0",
+    "@types/jest": "30.0.0",
+    "eslint": "9.35.0",
+    "eslint-config-expo": "~10.0.0",
+    "jest": "30.1.3",
+    "jest-expo": "~57.0.0"
+  }
+}

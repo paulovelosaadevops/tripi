@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Tripi",
+    "slug": "tripi",
+    "scheme": "tripi",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.tripi.mobile"
+    },
+    "android": {
+      "package": "app.tripi.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f3d5e"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-localization",
+      "expo-secure-store",
+      "expo-sqlite"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

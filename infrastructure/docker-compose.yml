@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: tripi-postgres
+    environment:
+      POSTGRES_DB: tripi
+      POSTGRES_USER: tripi
+      POSTGRES_PASSWORD: change-me-local-only
+    ports:
+      - "${TRIPI_POSTGRES_HOST_PORT:-55432}:5432"
+    volumes:
+      - tripi-postgres-18-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tripi -d tripi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  tripi-postgres-18-data:

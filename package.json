@@ -1,0 +1,22 @@
+{
+  "name": "tripi",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/mobile",
+    "packages/*"
+  ],
+  "scripts": {
+    "format": "prettier --check .",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "prettier": "3.6.2",
+    "typescript": "5.9.2"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}
