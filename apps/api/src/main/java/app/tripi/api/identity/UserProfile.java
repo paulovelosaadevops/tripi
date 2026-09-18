@@ -40,4 +40,12 @@ class UserProfile {
     this.createdAt = now;
     this.updatedAt = now;
   }
+
+  String displayName() {
+    return displayName;
+  }
+
+  String supportEmailLocale() {
+    return supportEmailLocale;
+  }
 }

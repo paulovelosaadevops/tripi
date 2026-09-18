@@ -15,6 +15,15 @@ spring:
 server:
   port: ${TRIPI_API_PORT:8080}
 
+tripi:
+  identity:
+    tokens:
+      issuer: ${TRIPI_JWT_ISSUER:tripi-api}
+      audience: ${TRIPI_JWT_AUDIENCE:tripi-mobile}
+      key-id: ${TRIPI_JWT_KEY_ID:local-dev}
+      private-key: ${TRIPI_JWT_PRIVATE_KEY:}
+      public-key: ${TRIPI_JWT_PUBLIC_KEY:}
+
 management:
   endpoint:
     health:

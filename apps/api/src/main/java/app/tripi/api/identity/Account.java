@@ -35,6 +35,9 @@ class Account {
   @Column(name = "deleted_at")
   private Instant deletedAt;
 
+  @Column(name = "email_verified_at")
+  private Instant emailVerifiedAt;
+
   @Version private long version;
 
   protected Account() {}
@@ -62,6 +65,10 @@ class Account {
 
   AccountStatus status() {
     return status;
+  }
+
+  boolean isEmailVerified() {
+    return emailVerifiedAt != null;
   }
 
   Instant createdAt() {

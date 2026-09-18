@@ -48,7 +48,124 @@ paths:
           $ref: "#/components/responses/Conflict"
         "422":
           $ref: "#/components/responses/ValidationError"
+  /v1/auth/login:
+    post:
+      tags:
+        - Identity
+      summary: Login with e-mail and password
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /v1/auth/refresh:
+    post:
+      tags:
+        - Identity
+      summary: Rotate refresh token and issue a new access token
+      operationId: refreshToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+  /v1/auth/logout:
+    post:
+      tags:
+        - Identity
+      summary: Revoke the current session
+      operationId: logout
+      responses:
+        "204":
+          description: Session revoked
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+  /v1/me:
+    get:
+      tags:
+        - Identity
+      summary: Get current identity and session
+      operationId: getCurrentIdentity
+      responses:
+        "200":
+          description: Current identity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentIdentity"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+  /v1/me/sessions:
+    get:
+      tags:
+        - Identity
+      summary: List own sessions
+      operationId: listSessions
+      responses:
+        "200":
+          description: Sessions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionList"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+  /v1/me/sessions/{sessionId}:
+    delete:
+      tags:
+        - Identity
+      summary: Revoke one own session
+      operationId: revokeSession
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Session revoked
+  /v1/me/sessions/others:
+    delete:
+      tags:
+        - Identity
+      summary: Revoke all other own sessions
+      operationId: revokeOtherSessions
+      responses:
+        "204":
+          description: Other sessions revoked
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     RegisterAccountRequest:
       type: object
@@ -124,6 +241,118 @@ components:
         createdAt:
           type: string
           format: date-time
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        clientInstallationId:
+          type: string
+          maxLength: 160
+        platform:
+          type: string
+          enum:
+            - IOS
+            - ANDROID
+            - WEB
+            - UNKNOWN
+        appVersion:
+          type: string
+        deviceName:
+          type: string
+    RefreshRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+    AuthSession:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - expiresAt
+        - user
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        user:
+          $ref: "#/components/schemas/CurrentIdentity"
+    CurrentIdentity:
+      type: object
+      required:
+        - id
+        - status
+        - emailVerified
+        - sessionId
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - PENDING_EMAIL_VERIFICATION
+            - DELETION_SCHEDULED
+            - DELETED
+            - SUSPENDED
+        emailVerified:
+          type: boolean
+        sessionId:
+          type: string
+          format: uuid
+    Session:
+      type: object
+      required:
+        - id
+        - platform
+        - current
+        - lastSeenAt
+        - revoked
+      properties:
+        id:
+          type: string
+          format: uuid
+        platform:
+          type: string
+          enum:
+            - IOS
+            - ANDROID
+            - WEB
+            - UNKNOWN
+        appVersion:
+          type: string
+        deviceName:
+          type: string
+        current:
+          type: boolean
+        lastSeenAt:
+          type: string
+          format: date-time
+        revoked:
+          type: boolean
+    SessionList:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Session"
     Problem:
       type: object
       required:
@@ -168,6 +397,12 @@ components:
             $ref: "#/components/schemas/Problem"
     ValidationError:
       description: Request validation failed
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Unauthenticated:
+      description: Authentication required or failed
       content:
         application/problem+json:
           schema:

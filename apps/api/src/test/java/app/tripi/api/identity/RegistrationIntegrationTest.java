@@ -44,6 +44,7 @@ class RegistrationIntegrationTest {
     registry.add("spring.datasource.url", postgres::getJdbcUrl);
     registry.add("spring.datasource.username", postgres::getUsername);
     registry.add("spring.datasource.password", postgres::getPassword);
+    registry.add("tripi.identity.tokens.allow-ephemeral-keys", () -> "true");
   }
 
   @Test
@@ -245,7 +246,6 @@ class RegistrationIntegrationTest {
     assertThat(openApi).contains("RegisterAccountRequest");
     assertThat(openApi).contains("RegisterAccountResponse");
     assertThat(openApi).doesNotContain("passwordHash");
-    assertThat(openApi).doesNotContain("AuthSession");
   }
 
   private void register(String email, String locale, String name) throws Exception {

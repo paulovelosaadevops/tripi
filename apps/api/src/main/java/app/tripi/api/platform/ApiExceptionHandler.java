@@ -1,6 +1,7 @@
 package app.tripi.api.platform;
 
 import app.tripi.api.identity.ApiFieldViolation;
+import app.tripi.api.identity.AuthenticationException;
 import app.tripi.api.identity.DuplicateAccountException;
 import app.tripi.api.identity.InvalidRegistrationRequest;
 import java.net.URI;
@@ -51,6 +52,16 @@ class ApiExceptionHandler {
     problem.setTitle("Conflict");
     problem.setType(URI.create("https://api.tripi.app/problems/account-conflict"));
     problem.setProperty("code", "ACCOUNT_CONFLICT");
+    return problem;
+  }
+
+  @ExceptionHandler(AuthenticationException.class)
+  ProblemDetail handleAuthentication(AuthenticationException exception) {
+    ProblemDetail problem =
+        ProblemDetail.forStatusAndDetail(exception.status(), exception.getMessage());
+    problem.setTitle(exception.status().isSameCodeAs(HttpStatus.UNAUTHORIZED) ? "Authentication failed" : "Conflict");
+    problem.setType(URI.create("https://api.tripi.app/problems/" + exception.code().toLowerCase().replace('_', '-')));
+    problem.setProperty("code", exception.code());
     return problem;
   }
 }
