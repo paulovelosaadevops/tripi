@@ -1,0 +1,1492 @@
+openapi: 3.1.0
+info:
+  title: Tripi MVP Planned API
+  version: 0.1.0
+  description: Planned MVP contract. This is documentation only and does not replace the executable API contract.
+tags:
+  - name: Identity
+  - name: Users
+  - name: Entitlements
+  - name: Trips
+  - name: Collaboration
+  - name: Itinerary
+  - name: Budget
+  - name: Expenses
+  - name: Audit
+security:
+  - bearerAuth: []
+paths:
+  /v1/auth/register:
+    post:
+      tags: [Identity]
+      summary: Register an account
+      security: []
+      operationId: registerAccount
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /v1/auth/login:
+    post:
+      tags: [Identity]
+      summary: Login with email and password
+      security: []
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/auth/refresh:
+    post:
+      tags: [Identity]
+      summary: Rotate refresh token and issue a new access token
+      security: []
+      operationId: refreshToken
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        "200":
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+  /v1/auth/logout:
+    post:
+      tags: [Identity]
+      summary: Revoke the current session
+      operationId: logout
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Session revoked
+  /v1/auth/email-verifications:
+    post:
+      tags: [Identity]
+      summary: Request email verification
+      security: []
+      operationId: requestEmailVerification
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Request accepted
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/auth/email-verifications/confirm:
+    post:
+      tags: [Identity]
+      summary: Confirm email verification token
+      security: []
+      operationId: confirmEmailVerification
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        $ref: "#/components/requestBodies/TokenConfirmation"
+      responses:
+        "200":
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "410":
+          $ref: "#/components/responses/Expired"
+  /v1/auth/password-resets:
+    post:
+      tags: [Identity]
+      summary: Request a password reset
+      security: []
+      operationId: requestPasswordReset
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "202":
+          description: Neutral response
+  /v1/auth/password-resets/confirm:
+    post:
+      tags: [Identity]
+      summary: Confirm password reset
+      security: []
+      operationId: confirmPasswordReset
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword]
+              properties:
+                token:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 12
+      responses:
+        "204":
+          description: Password changed
+        "410":
+          $ref: "#/components/responses/Expired"
+  /v1/me/profile:
+    get:
+      tags: [Users]
+      summary: Get my profile
+      operationId: getMyProfile
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+    patch:
+      tags: [Users]
+      summary: Update my profile
+      operationId: updateMyProfile
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+  /v1/me/preferences:
+    get:
+      tags: [Users]
+      summary: Get preferences
+      operationId: getPreferences
+      responses:
+        "200":
+          description: Preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
+    patch:
+      tags: [Users]
+      summary: Update preferences
+      operationId: updatePreferences
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPreferences"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
+  /v1/me/sessions:
+    get:
+      tags: [Identity]
+      summary: List my sessions
+      operationId: listSessions
+      responses:
+        "200":
+          $ref: "#/components/responses/SessionList"
+  /v1/me/sessions/{sessionId}:
+    delete:
+      tags: [Identity]
+      summary: Revoke a session
+      operationId: revokeSession
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Revoked
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/me/consents:
+    get:
+      tags: [Users]
+      summary: List accepted consents
+      operationId: listConsents
+      responses:
+        "200":
+          description: Consents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentList"
+    post:
+      tags: [Users]
+      summary: Accept terms or privacy policy
+      operationId: acceptConsent
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConsentAcceptance"
+      responses:
+        "201":
+          description: Consent accepted
+  /v1/me/data-exports:
+    get:
+      tags: [Users]
+      summary: List data export requests
+      operationId: listDataExports
+      responses:
+        "200":
+          description: Exports
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataExportList"
+    post:
+      tags: [Users]
+      summary: Request personal data export
+      operationId: requestDataExport
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Export requested
+  /v1/me/deletion-request:
+    post:
+      tags: [Users]
+      summary: Request account deletion
+      operationId: requestAccountDeletion
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/RecentAuth"
+      responses:
+        "202":
+          description: Deletion scheduled
+    delete:
+      tags: [Users]
+      summary: Cancel account deletion
+      operationId: cancelAccountDeletion
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Deletion cancelled
+  /v1/entitlements/me:
+    get:
+      tags: [Entitlements]
+      summary: Get my entitlements
+      operationId: getMyEntitlements
+      responses:
+        "200":
+          description: Entitlements
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntitlementState"
+  /v1/entitlements/trials:
+    post:
+      tags: [Entitlements]
+      summary: Start Premium trial
+      operationId: startPremiumTrial
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "201":
+          description: Trial started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntitlementState"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /v1/entitlements/store-events:
+    post:
+      tags: [Entitlements]
+      summary: Receive signed store provider event
+      operationId: receiveStoreEvent
+      security:
+        - webhookSignature: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Event accepted
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+  /v1/trips:
+    get:
+      tags: [Trips]
+      summary: List trips
+      operationId: listTrips
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Trips
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TripList"
+    post:
+      tags: [Trips]
+      summary: Create a trip
+      operationId: createTrip
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TripCreate"
+      responses:
+        "201":
+          description: Created trip
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trip"
+        "409":
+          $ref: "#/components/responses/FreeLimitReached"
+  /v1/trips/{tripId}:
+    get:
+      tags: [Trips]
+      summary: Get trip
+      operationId: getTrip
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+      responses:
+        "200":
+          description: Trip
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trip"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Trips]
+      summary: Update trip
+      operationId: updateTrip
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TripUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trip"
+        "409":
+          $ref: "#/components/responses/VersionConflict"
+    delete:
+      tags: [Trips]
+      summary: Delete trip
+      operationId: deleteTrip
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Deleted
+  /v1/trips/{tripId}/complete:
+    post:
+      tags: [Trips]
+      summary: Complete trip
+      operationId: completeTrip
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trip"
+  /v1/trips/{tripId}/active-selection:
+    put:
+      tags: [Trips]
+      summary: Select the active Free trip
+      operationId: selectActiveTrip
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Active trip selected
+  /v1/trips/{tripId}/travelers:
+    get:
+      tags: [Trips]
+      summary: List travelers
+      operationId: listTravelers
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+      responses:
+        "200":
+          description: Travelers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TravelerList"
+    post:
+      tags: [Trips]
+      summary: Add traveler or dependent
+      operationId: addTraveler
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TravelerInput"
+      responses:
+        "201":
+          description: Traveler added
+  /v1/trips/{tripId}/travelers/{travelerId}:
+    patch:
+      tags: [Trips]
+      summary: Update traveler
+      operationId: updateTraveler
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/TravelerId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Updated
+    delete:
+      tags: [Trips]
+      summary: Remove traveler
+      operationId: removeTraveler
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/TravelerId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Removed
+  /v1/trips/{tripId}/participants:
+    get:
+      tags: [Collaboration]
+      summary: List participants
+      operationId: listParticipants
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+      responses:
+        "200":
+          description: Participants
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParticipantList"
+  /v1/trips/{tripId}/participants/{participantId}:
+    delete:
+      tags: [Collaboration]
+      summary: Remove participant
+      operationId: removeParticipant
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/ParticipantId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Removed
+  /v1/trips/{tripId}/participants/{participantId}/permissions:
+    put:
+      tags: [Collaboration]
+      summary: Replace participant permissions
+      operationId: replaceParticipantPermissions
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/ParticipantId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ParticipantPermissions"
+      responses:
+        "200":
+          description: Permissions updated
+  /v1/trips/{tripId}/invitations:
+    get:
+      tags: [Collaboration]
+      summary: List invitations
+      operationId: listInvitations
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+      responses:
+        "200":
+          description: Invitations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationList"
+    post:
+      tags: [Collaboration]
+      summary: Invite participant
+      operationId: createInvitation
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvitationCreate"
+      responses:
+        "201":
+          description: Invitation created
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/invitations/{token}/accept:
+    post:
+      tags: [Collaboration]
+      summary: Accept invitation
+      operationId: acceptInvitation
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Invitation accepted
+        "410":
+          $ref: "#/components/responses/Expired"
+  /v1/trips/{tripId}/invitations/{invitationId}:
+    delete:
+      tags: [Collaboration]
+      summary: Revoke invitation
+      operationId: revokeInvitation
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - name: invitationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Revoked
+  /v1/trips/{tripId}/itinerary:
+    get:
+      tags: [Itinerary]
+      summary: Get trip itinerary
+      operationId: getItinerary
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+      responses:
+        "200":
+          description: Itinerary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Itinerary"
+  /v1/trips/{tripId}/activities:
+    post:
+      tags: [Itinerary]
+      summary: Create activity
+      operationId: createActivity
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityInput"
+      responses:
+        "201":
+          description: Activity created
+  /v1/trips/{tripId}/activities/{activityId}:
+    patch:
+      tags: [Itinerary]
+      summary: Update activity
+      operationId: updateActivity
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/ActivityId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Updated
+    delete:
+      tags: [Itinerary]
+      summary: Delete activity
+      operationId: deleteActivity
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/ActivityId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Deleted
+  /v1/trips/{tripId}/activities/reorder:
+    put:
+      tags: [Itinerary]
+      summary: Reorder activities
+      operationId: reorderActivities
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Reordered
+        "409":
+          $ref: "#/components/responses/VersionConflict"
+  /v1/trips/{tripId}/budget:
+    get:
+      tags: [Budget]
+      summary: Get budget
+      operationId: getBudget
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+      responses:
+        "200":
+          description: Budget
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Budget"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    put:
+      tags: [Budget]
+      summary: Replace budget
+      operationId: replaceBudget
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Budget updated
+  /v1/trips/{tripId}/budget/categories:
+    get:
+      tags: [Budget]
+      summary: List budget categories
+      operationId: listBudgetCategories
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+      responses:
+        "200":
+          description: Categories
+    post:
+      tags: [Budget]
+      summary: Create custom budget category
+      operationId: createBudgetCategory
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "201":
+          description: Created
+  /v1/trips/{tripId}/expenses:
+    get:
+      tags: [Expenses]
+      summary: List expenses
+      operationId: listExpenses
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Expenses
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseList"
+    post:
+      tags: [Expenses]
+      summary: Create expense
+      operationId: createExpense
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseInput"
+      responses:
+        "201":
+          description: Created expense
+  /v1/trips/{tripId}/expenses/{expenseId}:
+    patch:
+      tags: [Expenses]
+      summary: Update expense
+      operationId: updateExpense
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/ExpenseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Updated
+    delete:
+      tags: [Expenses]
+      summary: Delete expense
+      operationId: deleteExpense
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/ExpenseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Deleted
+  /v1/trips/{tripId}/offline-operations:
+    post:
+      tags: [Expenses]
+      summary: Sync offline operations
+      operationId: syncOfflineOperations
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "207":
+          description: Per-operation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfflineSyncResult"
+        "403":
+          $ref: "#/components/responses/PremiumRequired"
+  /v1/trips/{tripId}/dashboard:
+    get:
+      tags: [Trips]
+      summary: Get contextual dashboard
+      operationId: getDashboard
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+      responses:
+        "200":
+          description: Dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /v1/trips/{tripId}/audit-events:
+    get:
+      tags: [Audit]
+      summary: List trip audit events
+      operationId: listTripAuditEvents
+      parameters:
+        - $ref: "#/components/parameters/TripId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Audit events
+  /v1/analytics/events:
+    post:
+      tags: [Audit]
+      summary: Record allowed technical analytics event
+      operationId: recordAnalyticsEvent
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Accepted
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    webhookSignature:
+      type: apiKey
+      in: header
+      name: X-Tripi-Webhook-Signature
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 160
+    RecentAuth:
+      name: X-Recent-Authentication
+      in: header
+      required: false
+      schema:
+        type: string
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    TripId:
+      name: tripId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TravelerId:
+      name: travelerId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ParticipantId:
+      name: participantId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ActivityId:
+      name: activityId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ExpenseId:
+      name: expenseId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBodies:
+    TokenConfirmation:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [token]
+            properties:
+              token:
+                type: string
+  responses:
+    ValidationError:
+      description: Validation failed
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Conflict:
+      description: Conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    VersionConflict:
+      description: Version conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Unauthenticated:
+      description: Authentication required or failed
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Forbidden:
+      description: Authorization denied
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: Resource not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    RateLimited:
+      description: Rate limit exceeded
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Expired:
+      description: Token or invitation expired
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    FreeLimitReached:
+      description: Free plan limit reached
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    PremiumRequired:
+      description: Premium entitlement required
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    SessionList:
+      description: Sessions
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data]
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Session"
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status, code, correlationId]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        code:
+          type: string
+          enum:
+            - VALIDATION_FAILED
+            - AUTHENTICATION_REQUIRED
+            - AUTHORIZATION_DENIED
+            - RESOURCE_NOT_FOUND
+            - FREE_LIMIT_REACHED
+            - PREMIUM_REQUIRED
+            - EMAIL_NOT_VERIFIED
+            - INVITATION_EXPIRED
+            - IDEMPOTENCY_CONFLICT
+            - VERSION_CONFLICT
+            - SYNC_CONFLICT
+            - RECENT_AUTH_REQUIRED
+        correlationId:
+          type: string
+      examples:
+        - type: https://api.tripi.app/problems/premium-required
+          title: Premium required
+          status: 402
+          code: PREMIUM_REQUIRED
+          correlationId: 01JEXAMPLE0000000000000000
+    Money:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount:
+          type: string
+          pattern: "^-?[0-9]+(\\.[0-9]{1,4})?$"
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          examples: [USD, BRL, EUR]
+    Page:
+      type: object
+      properties:
+        nextCursor:
+          type: [string, "null"]
+    RegisterRequest:
+      type: object
+      required: [name, email, password, locale, ageConfirmed, acceptedTermsVersion, acceptedPrivacyVersion]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 12
+        locale:
+          type: string
+        ageConfirmed:
+          type: boolean
+          const: true
+        acceptedTermsVersion:
+          type: string
+        acceptedPrivacyVersion:
+          type: string
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    AuthSession:
+      type: object
+      required: [accessToken, refreshToken, expiresAt, user]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        user:
+          $ref: "#/components/schemas/UserProfile"
+    UserProfile:
+      type: object
+      required: [id, name, email, emailVerified]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        emailVerified:
+          type: boolean
+    ProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+    UserPreferences:
+      type: object
+      properties:
+        locale:
+          type: string
+          enum: [pt-BR, en-US]
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        theme:
+          type: string
+          enum: [SYSTEM, LIGHT, DARK]
+    Session:
+      type: object
+      required: [id, deviceName, platform, current, lastSeenAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        deviceName:
+          type: string
+        platform:
+          type: string
+          enum: [IOS, ANDROID, WEB]
+        current:
+          type: boolean
+        lastSeenAt:
+          type: string
+          format: date-time
+    ConsentAcceptance:
+      type: object
+      required: [documentType, version, locale]
+      properties:
+        documentType:
+          type: string
+          enum: [TERMS, PRIVACY]
+        version:
+          type: string
+        locale:
+          type: string
+    ConsentList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConsentAcceptance"
+    DataExportList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              status:
+                type: string
+                enum: [REQUESTED, PROCESSING, READY, EXPIRED, FAILED]
+    EntitlementState:
+      type: object
+      required: [plan, entitlements]
+      properties:
+        plan:
+          type: string
+          enum: [FREE, PREMIUM]
+        entitlements:
+          type: array
+          items:
+            type: string
+            enum: [PREMIUM, BETA_PREMIUM, OFFLINE, MULTI_CURRENCY, EXPORTS]
+        validUntil:
+          type: [string, "null"]
+          format: date-time
+    TripCreate:
+      type: object
+      required: [name, destinationName, startsOn, endsOn, timezone, currency]
+      properties:
+        name:
+          type: string
+        destinationName:
+          type: string
+        startsOn:
+          type: string
+          format: date
+        endsOn:
+          type: string
+          format: date
+        timezone:
+          type: string
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+    TripUpdate:
+      allOf:
+        - $ref: "#/components/schemas/TripCreate"
+        - type: object
+          properties:
+            version:
+              type: integer
+    Trip:
+      type: object
+      required: [id, name, status, startsOn, endsOn, currency, timezone, role]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        destinationName:
+          type: string
+        status:
+          type: string
+          enum: [PLANNING, UPCOMING, ONGOING, COMPLETED]
+        startsOn:
+          type: string
+          format: date
+        endsOn:
+          type: string
+          format: date
+        currency:
+          type: string
+        timezone:
+          type: string
+        role:
+          type: string
+          enum: [ORGANIZER, GUEST]
+        version:
+          type: integer
+    TripList:
+      type: object
+      required: [data, page]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Trip"
+        page:
+          $ref: "#/components/schemas/Page"
+    TravelerInput:
+      type: object
+      required: [displayName, type]
+      properties:
+        displayName:
+          type: string
+        type:
+          type: string
+          enum: [ACCOUNT, DEPENDENT]
+        birthDate:
+          type: string
+          format: date
+        relationship:
+          type: string
+    TravelerList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              displayName:
+                type: string
+              type:
+                type: string
+                enum: [ACCOUNT, DEPENDENT]
+    ParticipantList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              role:
+                type: string
+                enum: [ORGANIZER, GUEST]
+              plan:
+                type: string
+                enum: [FREE, PREMIUM]
+    ParticipantPermissions:
+      type: object
+      properties:
+        canEditItinerary:
+          type: boolean
+        canViewFinancials:
+          type: boolean
+        canEditOwnExpenses:
+          type: boolean
+    InvitationCreate:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+    InvitationList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              email:
+                type: string
+                format: email
+              status:
+                type: string
+                enum: [PENDING, ACCEPTED, EXPIRED, REVOKED]
+    Itinerary:
+      type: object
+      properties:
+        days:
+          type: array
+          items:
+            type: object
+            properties:
+              localDate:
+                type: string
+                format: date
+              activities:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+    ActivityInput:
+      type: object
+      required: [title, localDate]
+      properties:
+        title:
+          type: string
+        localDate:
+          type: string
+          format: date
+        startsAtLocal:
+          type: string
+        endsAtLocal:
+          type: string
+        notes:
+          type: string
+        locationName:
+          type: string
+    Activity:
+      allOf:
+        - $ref: "#/components/schemas/ActivityInput"
+        - type: object
+          required: [id, version]
+          properties:
+            id:
+              type: string
+              format: uuid
+            version:
+              type: integer
+    Budget:
+      type: object
+      properties:
+        total:
+          $ref: "#/components/schemas/Money"
+        allocations:
+          type: array
+          items:
+            type: object
+            properties:
+              categoryId:
+                type: string
+                format: uuid
+              amount:
+                $ref: "#/components/schemas/Money"
+    ExpenseInput:
+      type: object
+      required: [description, originalAmount, categoryId, occurredAt]
+      properties:
+        description:
+          type: string
+        originalAmount:
+          $ref: "#/components/schemas/Money"
+        categoryId:
+          type: string
+          format: uuid
+        occurredAt:
+          type: string
+          format: date-time
+        exchangeRate:
+          type: string
+    Expense:
+      allOf:
+        - $ref: "#/components/schemas/ExpenseInput"
+        - type: object
+          required: [id, syncState, version]
+          properties:
+            id:
+              type: string
+              format: uuid
+            syncState:
+              type: string
+              enum: [SYNCED, PENDING_SYNC, REJECTED, CONFLICT]
+            version:
+              type: integer
+    ExpenseList:
+      type: object
+      required: [data, page]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Expense"
+        page:
+          $ref: "#/components/schemas/Page"
+    OfflineSyncResult:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              idempotencyKey:
+                type: string
+              status:
+                type: string
+                enum: [ACCEPTED, REJECTED, CONFLICT]
+    Dashboard:
+      type: object
+      properties:
+        phase:
+          type: string
+          enum: [NO_ACTIVE_TRIP, BEFORE_TRIP, DURING_TRIP, AFTER_TRIP]
+        activeTrip:
+          $ref: "#/components/schemas/Trip"
