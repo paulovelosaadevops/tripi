@@ -47,7 +47,8 @@ export function Chip({ label, selected, onPress }: ChipProps) {
     <Pressable
       onPress={onPress}
       accessibilityRole="radio"
-      accessibilityState={{ selected }}
+      accessibilityState={{ checked: selected, selected }}
+      aria-checked={selected}
       style={({ pressed }) => [
         styles.chip,
         selected

@@ -162,6 +162,7 @@ export default function TripOverviewScreen() {
             </Surface>
           )}
           <View style={styles.quick}>
+            <PillButton icon="bolt" label="Gasto rápido" onPress={() => router.push({ pathname: '/viagem/[id]/gasto-rapido', params: { id } })} accessibilityLabel="Lançar gasto rápido" />
             <PillButton icon="wallet2" label="Carteira" onPress={() => router.push({ pathname: '/viagem/[id]/carteira', params: { id } })} accessibilityLabel="Abrir carteira de viagem" />
             <PillButton icon="alert" label="Emergência" onPress={() => router.push({ pathname: '/viagem/[id]/emergencia', params: { id } })} accessibilityLabel="Abrir telefones de emergência" />
             <PillButton icon="calendar" label="Dia completo" onPress={() => router.navigate({ pathname: '/viagem/[id]/roteiro', params: { id } })} accessibilityLabel="Ver o dia no roteiro" />

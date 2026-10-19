@@ -16,6 +16,8 @@ export type Trip = {
   invite_code: string;
   invite_link_enabled: boolean;
   archived_at: string | null;
+  /** Fuso do destino (ex.: "Europe/Lisbon"), preenchido pelo app a partir da cidade; usado nos lembretes. */
+  timezone: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -101,6 +103,10 @@ export type ChecklistItem = {
   label: string;
   done: boolean;
   position: number;
+  notes: string | null;
+  quantity: number;
+  /** Quem leva o item (viajante); null = ninguém em especial. */
+  assigned_to: string | null;
   created_at: string;
 };
 

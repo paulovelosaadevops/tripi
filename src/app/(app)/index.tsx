@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
 import { RefreshControl, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TripsSkeleton } from '@/components/skeleton';
 import { NextTripCard, TripRow } from '@/components/trip-cards';
-import { Button, IconButton } from '@/components/ui/button';
+import { Button, FloatingButton, IconButton } from '@/components/ui/button';
 import { TripiMark } from '@/components/ui/icon';
 import { ErrorView, Screen, SectionTitle } from '@/components/ui/layout';
 import { Surface } from '@/components/ui/surface';
@@ -26,62 +27,67 @@ export default function MyTripsScreen() {
   const groups = trips.data ? groupTrips(trips.data, toISODate(new Date())) : null;
   const isEmpty = trips.data?.length === 0;
 
+  const insets = useSafeAreaInsets();
+
   return (
-    <Screen
-      bottomSpace={110}
-      refreshControl={<RefreshControl refreshing={trips.isRefetching} onRefresh={() => void trips.refetch()} tintColor={colors.accent} />}
-      footer={!isEmpty && <Button label="Nova viagem" icon="plus" onPress={() => router.push('/nova-viagem')} />}
-      header={
-        <View style={styles.header}>
-          <View style={styles.flex}>
-            <AppText variant="small" weight="semibold" tone="muted">
-              {name ? `Olá, ${name}` : 'Olá'}
-            </AppText>
-            <AppText variant="title" accessibilityRole="header">
-              Minhas viagens
-            </AppText>
+    <View style={styles.flex}>
+      <Screen
+        bottomSpace={110}
+        refreshControl={<RefreshControl refreshing={trips.isRefetching} onRefresh={() => void trips.refetch()} tintColor={colors.accent} />}
+        header={
+          <View style={styles.header}>
+            <View style={styles.flex}>
+              <AppText variant="small" weight="semibold" tone="muted">
+                {name ? `Olá, ${name}` : 'Olá'}
+              </AppText>
+              <AppText variant="title" accessibilityRole="header">
+                Minhas viagens
+              </AppText>
+            </View>
+            <IconButton icon="user" label={`Perfil ${initials(profile.data?.name ?? '')}`} onPress={() => router.push('/perfil')} />
           </View>
-          <IconButton icon="user" label={`Perfil ${initials(profile.data?.name ?? '')}`} onPress={() => router.push('/perfil')} />
-        </View>
-      }>
-      {trips.isPending && <TripsSkeleton />}
-      {trips.isError && <ErrorView message="Não conseguimos carregar suas viagens." onRetry={() => trips.refetch()} />}
-      {isEmpty && <FirstTrip />}
-      {groups && !isEmpty && (
-        <>
-          {groups.next && (
-            <View style={styles.section}>
-              <SectionTitle>Próxima viagem</SectionTitle>
-              <NextTripWithChecklist trip={groups.next} />
-            </View>
-          )}
-          {groups.upcoming.length > 0 && (
-            <View style={styles.section}>
-              <SectionTitle>Depois</SectionTitle>
-              {groups.upcoming.map((trip) => (
-                <TripRow key={trip.id} trip={trip} onPress={() => openTrip(trip)} />
-              ))}
-            </View>
-          )}
-          {groups.planning.length > 0 && (
-            <View style={styles.section}>
-              <SectionTitle>Planejando</SectionTitle>
-              {groups.planning.map((trip) => (
-                <TripRow key={trip.id} trip={trip} onPress={() => openTrip(trip)} />
-              ))}
-            </View>
-          )}
-          {groups.past.length > 0 && (
-            <View style={styles.section}>
-              <SectionTitle>Anteriores</SectionTitle>
-              {groups.past.map((trip) => (
-                <TripRow key={trip.id} trip={trip} past onPress={() => openTrip(trip)} />
-              ))}
-            </View>
-          )}
-        </>
-      )}
-    </Screen>
+        }>
+        {trips.isPending && <TripsSkeleton />}
+        {trips.isError && <ErrorView message="Não conseguimos carregar suas viagens." onRetry={() => trips.refetch()} />}
+        {isEmpty && <FirstTrip />}
+        {groups && !isEmpty && (
+          <>
+            {groups.next && (
+              <View style={styles.section}>
+                <SectionTitle>Próxima viagem</SectionTitle>
+                <NextTripWithChecklist trip={groups.next} />
+              </View>
+            )}
+            {groups.upcoming.length > 0 && (
+              <View style={styles.section}>
+                <SectionTitle>Depois</SectionTitle>
+                {groups.upcoming.map((trip) => (
+                  <TripRow key={trip.id} trip={trip} onPress={() => openTrip(trip)} />
+                ))}
+              </View>
+            )}
+            {groups.planning.length > 0 && (
+              <View style={styles.section}>
+                <SectionTitle>Planejando</SectionTitle>
+                {groups.planning.map((trip) => (
+                  <TripRow key={trip.id} trip={trip} onPress={() => openTrip(trip)} />
+                ))}
+              </View>
+            )}
+            {groups.past.length > 0 && (
+              <View style={styles.section}>
+                <SectionTitle>Anteriores</SectionTitle>
+                {groups.past.map((trip) => (
+                  <TripRow key={trip.id} trip={trip} past onPress={() => openTrip(trip)} />
+                ))}
+              </View>
+            )}
+          </>
+        )}
+      </Screen>
+      {/* Mesmo botão flutuante das outras telas ("+ Gasto", "+ Atividade"). */}
+      {!isEmpty && <FloatingButton label="Viagem" bottom={insets.bottom + 24} onPress={() => router.push('/nova-viagem')} />}
+    </View>
   );
 }
 

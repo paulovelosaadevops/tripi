@@ -1,11 +1,13 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { useEffect } from 'react';
 
 import { useRates } from '@/data/exchange';
 import { useSettlements } from '@/data/settle';
 import { useActivities, useChecklist, useExpenses, useReservations, useTripRealtime } from '@/data/trip-content';
 import { useContacts, useDocuments, useNotes } from '@/data/trip-extras';
-import { useTrip, useTripMembers } from '@/data/trips';
+import { useTrip, useTripMembers, useUpdateTrip } from '@/data/trips';
 import { useTripWeather } from '@/data/weather';
+import { useAuth } from '@/providers/auth-provider';
 import { TripIdProvider } from '@/providers/trip-id';
 
 export default function TripLayout() {
@@ -20,7 +22,9 @@ export default function TripLayout() {
         <Stack.Screen name="atividade-nova" options={{ presentation: 'modal' }} />
         <Stack.Screen name="reserva-nova" options={{ presentation: 'modal' }} />
         <Stack.Screen name="gasto-novo" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="gasto-rapido" options={{ presentation: 'modal' }} />
         <Stack.Screen name="checklist" />
+        <Stack.Screen name="checklist-item" options={{ presentation: 'modal' }} />
         <Stack.Screen name="documentos" />
         <Stack.Screen name="documento-novo" options={{ presentation: 'modal' }} />
         <Stack.Screen name="documento/[docId]" />
@@ -36,6 +40,7 @@ export default function TripLayout() {
         <Stack.Screen name="busca" />
         <Stack.Screen name="carteira" />
         <Stack.Screen name="emergencia" />
+        <Stack.Screen name="lembretes" />
       </Stack>
     </TripIdProvider>
   );
@@ -47,7 +52,7 @@ export default function TripLayout() {
  */
 function useWholeTripCached(id: string) {
   const trip = useTrip(id);
-  useTripMembers(id);
+  const members = useTripMembers(id);
   useActivities(id);
   useReservations(id);
   useExpenses(id);
@@ -57,5 +62,17 @@ function useWholeTripCached(id: string) {
   useDocuments(id);
   useSettlements(id);
   useRates(trip.data?.local_currency);
-  useTripWeather(trip.data?.destinations);
+  const { place } = useTripWeather(trip.data?.destinations);
+
+  // Guarda o fuso do destino na viagem: os lembretes no servidor usam para avisar na hora local certa.
+  const { session } = useAuth();
+  const role = members.data?.find((m) => m.user_id === session?.user.id)?.role;
+  const updateTrip = useUpdateTrip(id);
+  const zone = place?.timezone;
+  const savedZone = trip.data?.timezone;
+  const canEdit = role === 'owner' || role === 'editor';
+  useEffect(() => {
+    if (zone && canEdit && trip.data && savedZone !== zone && !updateTrip.isPending) updateTrip.mutate({ timezone: zone });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando o fuso ou a permissão mudam
+  }, [zone, savedZone, canEdit]);
 }

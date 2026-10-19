@@ -7,8 +7,8 @@ Viagem: setembro de 2027. Ordem sugerida: 1 → 2 → 3 → 4 → 5.
 |---|---|---|
 | 1 | Modo offline | ✅ Concluída |
 | 2 | Tela "Hoje" + Carteira de viagem | ✅ Concluída |
-| 3 | Planejamento mais rápido | A fazer |
-| 4 | Lembretes + gasto rápido | A fazer |
+| 3 | Planejamento mais rápido | ⏸️ Adiada |
+| 4 | Lembretes + gasto rápido (+ checklist detalhado) | ✅ Concluída |
 | 5 | Pós-viagem: resumo e diário | A fazer |
 
 ---
@@ -38,7 +38,7 @@ aparece para os outros viajantes. *(Testado: 7 passos, na versão de produção 
 
 **Pronto quando:** nas datas da viagem a Visão geral abre no "Hoje" e qualquer código fica a 2 toques. *(Testado: 8 passos.)*
 
-## 3. Planejamento mais rápido
+## 3. Planejamento mais rápido ⏸️ (adiada)
 
 **Objetivo:** menos digitação e menos esquecimentos antes de viajar.
 
@@ -48,14 +48,15 @@ aparece para os outros viajantes. *(Testado: 7 passos, na versão de produção 
 
 **Pronto quando:** colando o e-mail de uma reserva aérea ou de hotel, a reserva aparece preenchida para revisar.
 
-## 4. Lembretes + gasto rápido
+## 4. Lembretes + gasto rápido ✅
 
 **Objetivo:** não perder horários e registrar gastos na hora.
 
-- [ ] **Lembretes:** "Voo em 3 h", "Check-out até 11h", "Atividade em 1 h" — configuráveis por viagem.
-- [ ] **Gasto rápido:** lançar valor e categoria em 2 toques, com foto do recibo opcional.
+- [x] **Lembretes:** Web Push gratuito. A função `lembretes` (Supabase Edge Function, agendada a cada 10 min com pg_cron) avisa voos, embarques, atividades, check-out e devolução do carro no fuso do destino, uma vez só, com antecedência escolhida por viagem (Mais › Lembretes). No iPhone, exige o Tripi na Tela de Início (iOS 16.4+).
+- [x] **Gasto rápido:** valor + toque na categoria = salvo (também offline), foto do recibo opcional (comprimida; precisa de internet).
+- [x] **Checklist detalhado:** categorias novas, quantidade, quem leva, observações, filtros (Todos/Faltam/Comigo) e progresso por categoria.
 
-**Pronto quando:** o celular avisa antes de um compromisso e um gasto é lançado em menos de 5 segundos.
+**Pronto quando:** o celular avisa antes de um compromisso e um gasto é lançado em menos de 5 segundos. *(Testado: função 13 verificações; telas 6 passos × 2 temas.)*
 **Custo:** começar pela notificação gratuita da versão web/PWA (limitada no iPhone). Notificação completa exige app via TestFlight (US$ 99/ano) — só se decidirmos.
 
 ## 5. Pós-viagem: resumo e diário

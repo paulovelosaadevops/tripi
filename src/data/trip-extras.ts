@@ -136,3 +136,21 @@ export async function documentUrl(doc: TripDocument): Promise<string> {
   if (error || !data) throw new Error(error?.message ?? 'Sem link');
   return data.signedUrl;
 }
+
+// ── Recibos ───────────────────────────────────────────────────
+
+/** Envia a foto do recibo para documents/<viagem>/recibos/ e devolve o caminho (precisa de internet). */
+export async function uploadReceipt(tripId: string, file: PickedFile): Promise<string> {
+  const path = `${tripId}/recibos/${Date.now()}-${Crypto.randomUUID().slice(0, 8)}.jpg`;
+  const bytes = await readFileBytes(file);
+  const upload = await supabase.storage.from(BUCKET).upload(path, bytes, { contentType: file.mimeType ?? 'image/jpeg' });
+  if (upload.error) throw new Error(upload.error.message);
+  return path;
+}
+
+/** Link temporário (1 hora) para ver a foto do recibo. */
+export async function receiptUrl(path: string): Promise<string> {
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
+  if (error || !data) throw new Error(error?.message ?? 'Sem link');
+  return data.signedUrl;
+}

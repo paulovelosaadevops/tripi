@@ -196,6 +196,8 @@ export type NewExpense = {
   spent_on: string;
   paid_by: string;
   split_equally: boolean;
+  /** Foto do recibo no Storage (documents/<viagem>/recibos/…). */
+  receipt_path?: string | null;
 };
 
 const newestFirst = (a: Expense, b: Expense) => b.spent_on.localeCompare(a.spent_on) || b.created_at.localeCompare(a.created_at);
@@ -253,16 +255,52 @@ export const useToggleChecklistItem = offlineMutation<{ id: string; done: boolea
   apply: (rows, { id, done }) => rows.map((row) => (row.id === id ? { ...row, done } : row)),
 });
 
-export const useAddChecklistItem = offlineMutation<{ id?: string; label: string; group: string }, ChecklistItem>({
+export type ChecklistDetails = { notes?: string | null; quantity?: number; assigned_to?: string | null };
+
+export const useAddChecklistItem = offlineMutation<{ id?: string; label: string; group: string } & ChecklistDetails, ChecklistItem>({
   key: 'checklist-add',
   prepare: (input) => ({ ...input, id: input.id ?? Crypto.randomUUID() }),
-  send: async ({ tripId, id, label, group }) =>
-    unwrap(await supabase.from('checklist_items').insert({ id, trip_id: tripId, label, group_name: group, position: 10_000 })),
+  send: async ({ tripId, id, label, group, notes, quantity, assigned_to }) =>
+    unwrap(
+      await supabase.from('checklist_items').insert({
+        id,
+        trip_id: tripId,
+        label,
+        group_name: group,
+        position: 10_000,
+        notes: notes ?? null,
+        quantity: quantity ?? 1,
+        assigned_to: assigned_to ?? null,
+      }),
+    ),
   list: keys.checklist,
-  apply: (rows, { tripId, id, label, group }) => [
+  apply: (rows, { tripId, id, label, group, notes, quantity, assigned_to }) => [
     ...rows,
-    { id: id!, trip_id: tripId, label, group_name: group, done: false, position: 10_000, created_at: new Date().toISOString() },
+    {
+      id: id!,
+      trip_id: tripId,
+      label,
+      group_name: group,
+      done: false,
+      position: 10_000,
+      notes: notes ?? null,
+      quantity: quantity ?? 1,
+      assigned_to: assigned_to ?? null,
+      created_at: new Date().toISOString(),
+    },
   ],
+});
+
+export const useUpdateChecklistItem = offlineMutation<
+  { id: string; label: string; group: string; notes: string | null; quantity: number; assigned_to: string | null },
+  ChecklistItem
+>({
+  key: 'checklist-update',
+  send: async ({ id, label, group, notes, quantity, assigned_to }) =>
+    unwrap(await supabase.from('checklist_items').update({ label, group_name: group, notes, quantity, assigned_to }).eq('id', id)),
+  list: keys.checklist,
+  apply: (rows, { id, label, group, notes, quantity, assigned_to }) =>
+    rows.map((row) => (row.id === id ? { ...row, label, group_name: group, notes, quantity, assigned_to } : row)),
 });
 
 export const useDeleteChecklistItem = offlineMutation<{ id: string }, ChecklistItem>({

@@ -55,6 +55,24 @@ export default function ExpensesScreen() {
         {(expenses.isPending || !t) && <SkeletonBlock height={190} radius={26} />}
         {expenses.isError && <ErrorView message="Não conseguimos carregar os gastos." onRetry={() => expenses.refetch()} />}
 
+        <Pressable
+          onPress={() => router.push({ pathname: '/viagem/[id]/gasto-rapido', params: { id } })}
+          accessibilityRole="button"
+          accessibilityLabel="Lançar gasto rápido: valor e categoria em dois toques">
+          {({ pressed }) => (
+            <Surface style={[styles.rateRow, pressed && styles.pressed]}>
+              <Icon name="bolt" size={22} color={colors.accent} />
+              <View style={styles.flex}>
+                <AppText variant="bodyStrong">Gasto rápido</AppText>
+                <AppText variant="caption" tone="muted">
+                  Valor e categoria em dois toques, até sem internet
+                </AppText>
+              </View>
+              <Icon name="chevronRight" size={18} color={colors.muted} />
+            </Surface>
+          )}
+        </Pressable>
+
         {summary && t && (
           <Surface variant="hero" radius={26} style={styles.hero}>
             <AppText variant="small" weight="bold" tone="heroMuted">

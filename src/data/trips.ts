@@ -86,7 +86,7 @@ export function groupTrips(trips: Trip[], todayISO: string) {
 
 export function useUpdateTrip(id: string) {
   return useMutation({
-    mutationFn: async (input: Partial<NewTrip> & { invite_link_enabled?: boolean; archived_at?: string | null }) =>
+    mutationFn: async (input: Partial<NewTrip> & { invite_link_enabled?: boolean; archived_at?: string | null; timezone?: string | null }) =>
       unwrap<Trip>(await supabase.from('trips').update(input).eq('id', id).select('*').single()),
     onSuccess: (trip) => {
       queryClient.setQueryData(keys.trip(id), trip);

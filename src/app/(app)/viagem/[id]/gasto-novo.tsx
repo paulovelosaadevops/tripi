@@ -1,3 +1,4 @@
+import * as Linking from 'expo-linking';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Platform, StyleSheet, TextInput } from 'react-native';
@@ -11,6 +12,7 @@ import { SwitchRow } from '@/components/ui/switch-row';
 import { AppText } from '@/components/ui/text';
 import { commit } from '@/data/offline';
 import { useCreateExpense, useDeleteExpense, useExpenses, useUpdateExpense } from '@/data/trip-content';
+import { receiptUrl } from '@/data/trip-extras';
 import { useTrip, useTripMembers } from '@/data/trips';
 import { confirmAction } from '@/lib/confirm';
 import { firstName, formatBrazilianDate, moneyInput, parseBrazilianDate, parseMoney, toISODate } from '@/lib/format';
@@ -158,6 +160,21 @@ function ExpenseForm({ tripId, expense }: { tripId: string; expense?: Expense })
       {payers.length > 1 && <ChipGroup label="Pago por" options={payers} value={paidBy} onChange={setPaidBy} />}
       {travelers > 1 && (
         <SwitchRow title="Dividir igualmente" subtitle={`Entre os ${travelers} viajantes`} value={split} onChange={setSplit} />
+      )}
+      {expense?.receipt_path && (
+        <Button
+          label="Ver foto do recibo"
+          icon="camera"
+          variant="secondary"
+          size="medium"
+          onPress={async () => {
+            try {
+              await Linking.openURL(await receiptUrl(expense.receipt_path!));
+            } catch {
+              setErrors({ form: 'Não foi possível abrir o recibo. Verifique a conexão.' });
+            }
+          }}
+        />
       )}
     </Screen>
   );

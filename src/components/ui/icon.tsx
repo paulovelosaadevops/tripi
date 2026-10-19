@@ -6,6 +6,9 @@ const shapes = {
   back: <Path d="M15 5l-7 7 7 7" />,
   close: <Path d="M6 6l12 12M18 6L6 18" />,
   plus: <Path d="M12 5v14M5 12h14" />,
+  minus: <Path d="M5 12h14" />,
+  bell: <Path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0" />,
+  bolt: <Path d="M13 3L5 14h6l-1 7 8-11h-6z" />,
   swap: <Path d="M7 4L3 8l4 4M3 8h14M17 12l4 4-4 4M21 16H7" />,
   chevronRight: <Path d="M9 5l7 7-7 7" />,
   copy: (

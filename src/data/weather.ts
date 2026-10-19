@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
  * Tudo fica no cache salvo no aparelho, então a última previsão aparece também offline.
  */
 
-export type Place = { name: string; country: string; countryCode: string; latitude: number; longitude: number };
+export type Place = { name: string; country: string; countryCode: string; latitude: number; longitude: number; timezone: string | null };
 
 export type DayForecast = { code: number; max: number; min: number; rain: number | null };
 
@@ -22,11 +22,18 @@ export function usePlace(name: string | undefined) {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Localização indisponível (${response.status})`);
       const data = (await response.json()) as {
-        results?: { name: string; country: string; country_code: string; latitude: number; longitude: number }[];
+        results?: { name: string; country: string; country_code: string; latitude: number; longitude: number; timezone?: string }[];
       };
       const hit = data.results?.[0];
       return hit
-        ? { name: hit.name, country: hit.country, countryCode: hit.country_code, latitude: hit.latitude, longitude: hit.longitude }
+        ? {
+            name: hit.name,
+            country: hit.country,
+            countryCode: hit.country_code,
+            latitude: hit.latitude,
+            longitude: hit.longitude,
+            timezone: hit.timezone ?? null,
+          }
         : null;
     },
   });
