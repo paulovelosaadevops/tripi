@@ -1,16 +1,24 @@
 import { Redirect } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 
 import { LoadingView } from '@/components/ui/layout';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
-/** Volta do login com Apple/Google e dos links de e-mail; a sessão é lida pelo Supabase. */
+/** Volta do login com Google/Apple no navegador: troca o código do endereço pela sessão. */
 export default function AuthCallback() {
   const { session } = useAuth();
   const [timedOut, setTimedOut] = useState(false);
+  const started = useRef(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setTimedOut(true), 5000);
+    if (Platform.OS === 'web' && !started.current) {
+      started.current = true;
+      const code = new URL(globalThis.location.href).searchParams.get('code');
+      if (code) supabase.auth.exchangeCodeForSession(code);
+    }
+    const timer = setTimeout(() => setTimedOut(true), 8000);
     return () => clearTimeout(timer);
   }, []);
 

@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type PropsWith
 import { Platform } from 'react-native';
 
 import { queryClient } from '@/data/query-client';
-import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { isSupabaseConfigured, supabase, supabaseEmailLinks } from '@/lib/supabase';
 import { emailLinkTarget } from '@/lib/web-url';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
-          options: { data: { name: name.trim() }, emailRedirectTo: emailLinkTarget('/auth/confirmar') },
+          options: { data: { name: name.trim() }, emailRedirectTo: emailLinkTarget('/auth/confirmar?tipo=cadastro') },
         });
         if (error) throw error;
         return { needsConfirmation: !data.session };
@@ -99,7 +99,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (exchange.error) throw exchange.error;
       },
       async sendPasswordReset(email) {
-        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: emailLinkTarget('/auth/confirmar') });
+        const { error } = await supabaseEmailLinks.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: emailLinkTarget('/auth/confirmar?tipo=senha'),
+        });
         if (error) throw error;
       },
       async signOut() {
