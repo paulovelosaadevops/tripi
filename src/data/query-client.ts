@@ -21,6 +21,7 @@ export const keys = {
   contacts: (id: string) => ['contacts', id] as const,
   notes: (id: string) => ['notes', id] as const,
   documents: (id: string) => ['documents', id] as const,
+  settlements: (id: string) => ['settlements', id] as const,
   profile: ['profile'] as const,
 };
 

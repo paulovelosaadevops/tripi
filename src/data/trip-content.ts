@@ -266,6 +266,7 @@ const realtimeTables: Record<string, (tripId: string) => readonly unknown[]> = {
   contacts: keys.contacts,
   notes: keys.notes,
   documents: keys.documents,
+  trip_settlements: keys.settlements,
 };
 
 /** Enquanto a viagem está aberta, mudanças de outros viajantes atualizam as telas na hora. */

@@ -6,6 +6,7 @@ const shapes = {
   back: <Path d="M15 5l-7 7 7 7" />,
   close: <Path d="M6 6l12 12M18 6L6 18" />,
   plus: <Path d="M12 5v14M5 12h14" />,
+  swap: <Path d="M7 4L3 8l4 4M3 8h14M17 12l4 4-4 4M21 16H7" />,
   chevronRight: <Path d="M9 5l7 7-7 7" />,
   search: (
     <>

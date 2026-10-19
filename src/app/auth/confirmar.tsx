@@ -12,7 +12,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 import { useAppTheme } from '@/theme/theme-provider';
 
-type Stage = 'checking' | 'confirmed' | 'new-password' | 'password-saved' | 'invalid';
+type Stage = 'checking' | 'confirmed' | 'email-changed' | 'new-password' | 'password-saved' | 'invalid';
 
 const otpTypes: EmailOtpType[] = ['signup', 'email', 'recovery', 'invite', 'magiclink', 'email_change'];
 
@@ -74,7 +74,7 @@ export default function ConfirmEmailLink() {
       const type = link.type as EmailOtpType;
       supabase.auth.verifyOtp({ token_hash: link.token_hash, type }).then(({ error: verifyError }) => {
         if (verifyError) setStage('invalid');
-        else setStage(type === 'recovery' ? 'new-password' : 'confirmed');
+        else setStage(type === 'recovery' ? 'new-password' : type === 'email_change' ? 'email-changed' : 'confirmed');
       });
       return;
     }
@@ -107,11 +107,18 @@ export default function ConfirmEmailLink() {
     else setStage('password-saved');
   }
 
-  const result: Record<'confirmed' | 'password-saved' | 'invalid', { icon: IconName; title: string; message: string; tint: { bg: string; fg: string } }> = {
+  const result: Record<'confirmed' | 'email-changed' | 'password-saved' | 'invalid', { icon: IconName; title: string; message: string; tint: { bg: string; fg: string } }> = {
     confirmed: {
       icon: 'check',
       title: 'E-mail confirmado!',
       message: 'Sua conta está ativa. Abra o Tripi e entre com seu e-mail e senha.',
+      tint: colors.green,
+    },
+    'email-changed': {
+      icon: 'check',
+      title: 'Link confirmado',
+      message:
+        'Se o Tripi mandou um link também para o seu outro e-mail (o antigo ou o novo), confirme por lá. A troca vale assim que os dois forem confirmados.',
       tint: colors.green,
     },
     'password-saved': {
@@ -162,7 +169,7 @@ export default function ConfirmEmailLink() {
         </View>
       )}
 
-      {(stage === 'confirmed' || stage === 'password-saved' || stage === 'invalid') && (
+      {(stage === 'confirmed' || stage === 'email-changed' || stage === 'password-saved' || stage === 'invalid') && (
         <View style={styles.block} accessibilityLiveRegion="polite">
           <View style={[styles.badge, { backgroundColor: result[stage].tint.bg }]}>
             <Icon name={result[stage].icon} size={34} color={result[stage].tint.fg} strokeWidth={2.4} />

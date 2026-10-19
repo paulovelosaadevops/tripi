@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { ChipGroup } from '@/components/ui/chip';
 import { TextField } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { ListRow, Screen, ScreenHeader, SectionTitle } from '@/components/ui/layout';
@@ -11,6 +12,7 @@ import { AppText } from '@/components/ui/text';
 import { useProfile, useTrips, useUpdateProfile } from '@/data/trips';
 import { confirmAction } from '@/lib/confirm';
 import { initials } from '@/lib/format';
+import { Currencies } from '@/lib/labels';
 import { useAuth } from '@/providers/auth-provider';
 import { useAppTheme } from '@/theme/theme-provider';
 
@@ -25,6 +27,8 @@ export default function ProfileScreen() {
   const update = useUpdateProfile(userId);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
+  const [pickingCurrency, setPickingCurrency] = useState(false);
+  const homeCurrency = profile.data?.home_currency ?? 'BRL';
 
   const confirmSignOut = async () => {
     if (await confirmAction('Sair da conta?', 'Suas viagens continuam salvas na nuvem.', 'Sair')) {
@@ -91,7 +95,32 @@ export default function ProfileScreen() {
       <SectionTitle>Preferências</SectionTitle>
       <Surface>
         <ListRow title="Aparência" value={preferenceLabel[preference]} onPress={() => router.push('/aparencia')} />
-        <ListRow title="Moeda de casa" value={profile.data?.home_currency ?? 'BRL'} isLast />
+        <ListRow
+          title="Moeda de casa"
+          subtitle="Os gastos da viagem também aparecem convertidos nela"
+          value={homeCurrency}
+          onPress={() => setPickingCurrency(!pickingCurrency)}
+          isLast={!pickingCurrency}
+        />
+        {pickingCurrency && (
+          <View style={styles.edit}>
+            <ChipGroup
+              label="Moeda de casa"
+              options={Currencies.filter((c) => c.code !== 'ARS' && c.code !== 'CLP').map((c) => ({ value: c.code as string, label: `${c.code} · ${c.label}` }))}
+              value={homeCurrency}
+              onChange={async (code) => {
+                await update.mutateAsync({ home_currency: code });
+                setPickingCurrency(false);
+              }}
+            />
+          </View>
+        )}
+      </Surface>
+
+      <SectionTitle>Conta</SectionTitle>
+      <Surface>
+        <ListRow title="Alterar e-mail" subtitle={session?.user.email} onPress={() => router.push('/alterar-email')} />
+        <ListRow title="Alterar senha" onPress={() => router.push('/alterar-senha')} isLast />
       </Surface>
 
       <Button label="Sair da conta" variant="secondary" icon="logout" onPress={confirmSignOut} />

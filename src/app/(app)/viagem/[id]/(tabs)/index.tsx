@@ -9,6 +9,7 @@ import { ErrorView, LoadingView, ProgressBar, Screen, SectionTitle } from '@/com
 import { Surface } from '@/components/ui/surface';
 import { AppText } from '@/components/ui/text';
 import { summarizeBudget } from '@/data/budget';
+import { convert, useHomeCurrency, useRates } from '@/data/exchange';
 import { useActivities, useChecklist, useExpenses, useReservations } from '@/data/trip-content';
 import { useTrip, useTripMembers } from '@/data/trips';
 import { daysUntil, eachDay, formatDateRange, formatMoney, formatTime, formatWeekdayDayMonth, toISODate } from '@/lib/format';
@@ -25,6 +26,8 @@ export default function TripOverviewScreen() {
   const reservations = useReservations(id);
   const expenses = useExpenses(id);
   const checklist = useChecklist(id);
+  const rates = useRates(trip.data?.local_currency);
+  const home = useHomeCurrency();
   const { colors, scheme } = useAppTheme();
   const insets = useSafeAreaInsets();
   const space = useTabBarSpace();
@@ -40,7 +43,8 @@ export default function TripOverviewScreen() {
 
   const t = trip.data;
   const travelers = members.data?.length ?? 1;
-  const budget = summarizeBudget(t, expenses.data ?? [], travelers);
+  const budget = summarizeBudget(t, expenses.data ?? [], travelers, rates.data);
+  const spentAtHome = home !== t.local_currency ? convert(budget.spent, t.local_currency, home, rates.data) : null;
   const daysToGo = t.start_date ? daysUntil(t.start_date) : null;
   const tripDays = t.start_date && t.end_date ? eachDay(t.start_date, t.end_date).length : null;
   const doneItems = checklist.data?.filter((i) => i.done).length ?? 0;
@@ -98,7 +102,15 @@ export default function TripOverviewScreen() {
               Minhas viagens
             </AppText>
           </Pressable>
-          <IconButton icon="share" label="Convidar para a viagem" variant={dark ? 'surface' : 'hero'} onPress={() => shareTripInvite(t)} />
+          <View style={styles.heroActions}>
+            <IconButton
+              icon="search"
+              label="Buscar na viagem"
+              variant={dark ? 'surface' : 'hero'}
+              onPress={() => router.push({ pathname: '/viagem/[id]/busca', params: { id } })}
+            />
+            <IconButton icon="share" label="Convidar para a viagem" variant={dark ? 'surface' : 'hero'} onPress={() => shareTripInvite(t)} />
+          </View>
         </View>
         <View>
           <AppText variant="display" tone={dark ? 'default' : 'hero'} accessibilityRole="header">
@@ -158,6 +170,11 @@ export default function TripOverviewScreen() {
                 de {formatMoney(budget.budget, t.local_currency)}
               </AppText>
             )}
+            {spentAtHome != null && budget.spent > 0 && (
+              <AppText variant="small" tone="muted">
+                · ≈ {formatMoney(spentAtHome, home, { cents: false })}
+              </AppText>
+            )}
           </View>
           {budget.budget != null && <ProgressBar value={budget.progress} />}
           <AppText variant="small" tone="muted">
@@ -215,6 +232,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 28,
   },
   heroBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  heroActions: { flexDirection: 'row', gap: 8 },
   backLink: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44 },
   stats: { flexDirection: 'row', gap: 8, padding: 8 },
   statsLight: { padding: 0, backgroundColor: 'transparent' },
@@ -225,7 +243,7 @@ const styles = StyleSheet.create({
   nextIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   budget: { padding: 16, gap: 10 },
   budgetTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  amountRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  amountRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   tileWrap: { width: '48%', flexGrow: 1 },
   tile: { padding: 16, gap: 8 },

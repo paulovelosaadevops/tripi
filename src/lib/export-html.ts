@@ -1,4 +1,5 @@
 import { summarizeBudget } from '@/data/budget';
+import type { Rates } from '@/data/exchange';
 import { formatDateRange, formatMoney, formatTime, formatWeekdayDayMonth } from '@/lib/format';
 import { ActivityCategoryLabels, ExpenseCategoryLabels, ReservationKindLabels } from '@/lib/labels';
 import type { Activity, ChecklistItem, Contact, Expense, Reservation, Trip } from '@/lib/types';
@@ -19,6 +20,7 @@ export type ExportData = {
   expenses: Expense[];
   checklist: ChecklistItem[];
   contacts: Contact[];
+  rates?: Rates | null;
 };
 
 const esc = (value: string | null | undefined) =>
@@ -68,7 +70,7 @@ export function buildTripHtml(data: ExportData, sections: ExportSections): strin
   }
 
   if (sections.expenses) {
-    const s = summarizeBudget(trip, data.expenses, data.travelers);
+    const s = summarizeBudget(trip, data.expenses, data.travelers, data.rates);
     parts.push(`<h2>Gastos</h2>
       <p><b>${esc(formatMoney(s.spent, trip.local_currency))}</b>${s.budget != null ? ` de ${esc(formatMoney(s.budget, trip.local_currency))}` : ''} · ${esc(
         formatMoney(s.perPerson, trip.local_currency),

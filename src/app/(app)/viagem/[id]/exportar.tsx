@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Screen, ScreenHeader, SectionTitle } from '@/components/ui/layout';
 import { Surface } from '@/components/ui/surface';
 import { AppText } from '@/components/ui/text';
+import { useRates } from '@/data/exchange';
 import { useActivities, useChecklist, useExpenses, useReservations } from '@/data/trip-content';
 import { useContacts } from '@/data/trip-extras';
 import { useTrip, useTripMembers } from '@/data/trips';
@@ -31,6 +32,7 @@ export default function ExportScreen() {
   const expenses = useExpenses(id);
   const checklist = useChecklist(id);
   const contacts = useContacts(id);
+  const rates = useRates(trip.data?.local_currency);
   const [sections, setSections] = useState<ExportSections>({
     itinerary: true,
     reservations: true,
@@ -58,6 +60,7 @@ export default function ExportScreen() {
           expenses: expenses.data ?? [],
           checklist: checklist.data ?? [],
           contacts: contacts.data ?? [],
+          rates: rates.data,
         },
         sections,
       );

@@ -25,6 +25,9 @@ export default function TripLayout() {
         <Stack.Screen name="viajantes" />
         <Stack.Screen name="configuracoes" />
         <Stack.Screen name="exportar" />
+        <Stack.Screen name="cambio" />
+        <Stack.Screen name="acerto" />
+        <Stack.Screen name="busca" />
       </Stack>
     </TripIdProvider>
   );

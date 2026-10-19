@@ -28,6 +28,10 @@ export default function MoreScreen() {
 
   return (
     <Screen bottomSpace={space.content} header={<TabTitle overline={trip.data?.name} title="Mais" />}>
+      <Surface>
+        <ListRow icon="search" title="Buscar na viagem" subtitle="Reservas, roteiro, gastos, anotações…" onPress={() => go('busca')} isLast />
+      </Surface>
+
       <View style={styles.section}>
         <SectionTitle>Preparação</SectionTitle>
         <Surface>
@@ -46,6 +50,8 @@ export default function MoreScreen() {
         <Surface>
           <ListRow icon="map" title="Mapa da viagem" onPress={() => go('mapa')} />
           <ListRow icon="users" title="Viajantes" value={count(members.data)} onPress={() => go('viajantes')} />
+          <ListRow icon="wallet" title="Câmbio" subtitle="Conversor com a cotação do dia" onPress={() => go('cambio')} />
+          <ListRow icon="swap" title="Acerto de contas" subtitle="Quem deve para quem" onPress={() => go('acerto')} />
           <ListRow icon="phone" title="Contatos de emergência" value={count(contacts.data)} onPress={() => go('contatos')} />
           <ListRow icon="note" title="Anotações" value={count(notes.data)} onPress={() => go('anotacoes')} isLast />
         </Surface>
