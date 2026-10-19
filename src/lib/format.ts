@@ -142,3 +142,10 @@ export function initials(name: string): string {
 export function firstName(name: string): string {
   return name.trim().split(/\s+/)[0] ?? '';
 }
+
+/** Número para preencher um campo de valor: 48.5 → "48,50"; 320 → "320". */
+export function moneyInput(value: number | null | undefined): string {
+  if (value == null) return '';
+  const n = Number(value);
+  return Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ',');
+}

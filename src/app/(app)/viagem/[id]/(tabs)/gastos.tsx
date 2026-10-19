@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { SkeletonBlock } from '@/components/skeleton';
 import { useTabBarSpace } from '@/components/trip-tab-bar';
@@ -109,11 +109,17 @@ export default function ExpensesScreen() {
             <SectionTitle>Recentes</SectionTitle>
             <Surface>
               {expenses.data.map((e, i) => (
-                <View
+                <Pressable
                   key={e.id}
-                  style={[styles.row, i < expenses.data.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.separator }]}
-                  accessible
-                  accessibilityLabel={`${e.description}, ${formatMoney(Number(e.amount), e.currency)}`}>
+                  onPress={() => router.push({ pathname: '/viagem/[id]/gasto-novo', params: { id, editId: e.id } })}
+                  style={({ pressed }) => [
+                    styles.row,
+                    i < expenses.data.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.separator },
+                    pressed && styles.pressed,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${e.description}, ${formatMoney(Number(e.amount), e.currency)}`}
+                  accessibilityHint="Toque para editar ou excluir">
                   <View style={styles.flex}>
                     <AppText variant="bodyStrong">{e.description}</AppText>
                     <AppText variant="small" tone="muted">
@@ -124,7 +130,7 @@ export default function ExpensesScreen() {
                   <AppText variant="bodyStrong" weight="extrabold">
                     {formatMoney(Number(e.amount), e.currency)}
                   </AppText>
-                </View>
+                </Pressable>
               ))}
             </Surface>
           </View>
@@ -147,4 +153,5 @@ const styles = StyleSheet.create({
   categoryTop: { flexDirection: 'row', justifyContent: 'space-between' },
   section: { gap: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
+  pressed: { opacity: 0.7 },
 });

@@ -26,12 +26,29 @@ export type NewActivity = {
   place: string | null;
   estimated_cost: number | null;
   notes: string | null;
+  /** Preenchido quando a atividade nasce de uma reserva (editar/excluir a reserva acompanha). */
+  reservation_id?: string | null;
 };
 
 export function useCreateActivity(tripId: string) {
   return useMutation({
     mutationFn: async (input: NewActivity) =>
       unwrap<Activity>(await supabase.from('activities').insert({ ...input, trip_id: tripId }).select('*').single()),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.activities(tripId) }),
+  });
+}
+
+export function useUpdateActivity(tripId: string) {
+  return useMutation({
+    mutationFn: async ({ id, ...input }: NewActivity & { id: string }) =>
+      unwrap<Activity>(await supabase.from('activities').update(input).eq('id', id).select('*').single()),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.activities(tripId) }),
+  });
+}
+
+export function useDeleteActivity(tripId: string) {
+  return useMutation({
+    mutationFn: async (id: string) => unwrap(await supabase.from('activities').delete().eq('id', id)),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.activities(tripId) }),
   });
 }
@@ -59,6 +76,30 @@ export type NewReservation = {
   currency: string;
 };
 
+function expenseCategoryFor(kind: ReservationKind): ExpenseCategory {
+  if (kind === 'hospedagem') return 'hospedagem';
+  if (kind === 'ingresso') return 'ingressos';
+  if (kind === 'outro') return 'outros';
+  return 'transporte';
+}
+
+/** Campos do gasto lançado a partir de uma reserva com valor pago. */
+function expenseFieldsFromReservation(input: NewReservation) {
+  return {
+    description: input.title,
+    category: expenseCategoryFor(input.kind),
+    amount: input.amount,
+    currency: input.currency,
+    spent_on: (input.starts_at ?? new Date().toISOString()).slice(0, 10),
+  };
+}
+
+function invalidateReservationData(tripId: string) {
+  queryClient.invalidateQueries({ queryKey: keys.reservations(tripId) });
+  queryClient.invalidateQueries({ queryKey: keys.expenses(tripId) });
+  queryClient.invalidateQueries({ queryKey: keys.activities(tripId) });
+}
+
 /** Salva a reserva; com valor pago, também lança o gasto correspondente. */
 export function useCreateReservation(tripId: string) {
   return useMutation({
@@ -67,26 +108,62 @@ export function useCreateReservation(tripId: string) {
         await supabase.from('reservations').insert({ ...input, trip_id: tripId }).select('*').single(),
       );
       if (addExpense && input.amount) {
-        const category: ExpenseCategory =
-          input.kind === 'hospedagem' ? 'hospedagem' : input.kind === 'ingresso' ? 'ingressos' : input.kind === 'outro' ? 'outros' : 'transporte';
         unwrap(
-          await supabase.from('expenses').insert({
-            trip_id: tripId,
-            description: input.title,
-            category,
-            amount: input.amount,
-            currency: input.currency,
-            spent_on: (input.starts_at ?? new Date().toISOString()).slice(0, 10),
-            reservation_id: reservation.id,
-          }),
+          await supabase
+            .from('expenses')
+            .insert({ ...expenseFieldsFromReservation(input), trip_id: tripId, reservation_id: reservation.id }),
         );
       }
       return reservation;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: keys.reservations(tripId) });
-      queryClient.invalidateQueries({ queryKey: keys.expenses(tripId) });
+    onSuccess: () => invalidateReservationData(tripId),
+  });
+}
+
+/**
+ * Edita a reserva e mantém em dia o que nasceu dela: o gasto (criado, atualizado ou removido conforme o valor)
+ * e a atividade do roteiro (título, local, dia e horário).
+ */
+export function useUpdateReservation(tripId: string) {
+  return useMutation({
+    mutationFn: async ({ id, ...input }: NewReservation & { id: string }) => {
+      const reservation = unwrap<Reservation>(await supabase.from('reservations').update(input).eq('id', id).select('*').single());
+
+      const linked = unwrap<{ id: string }[]>(await supabase.from('expenses').select('id').eq('reservation_id', id));
+      if (input.amount && input.amount > 0) {
+        if (linked.length > 0) {
+          unwrap(await supabase.from('expenses').update(expenseFieldsFromReservation(input)).eq('reservation_id', id));
+        } else {
+          unwrap(
+            await supabase.from('expenses').insert({ ...expenseFieldsFromReservation(input), trip_id: tripId, reservation_id: id }),
+          );
+        }
+      } else if (linked.length > 0) {
+        unwrap(await supabase.from('expenses').delete().eq('reservation_id', id));
+      }
+
+      const activityFields: Record<string, unknown> = { title: input.title, place: input.place };
+      if (input.starts_at) {
+        activityFields.day = input.starts_at.slice(0, 10);
+        const time = input.starts_at.slice(11, 16);
+        activityFields.start_time = time === '00:00' ? null : time;
+      }
+      unwrap(await supabase.from('activities').update(activityFields).eq('reservation_id', id));
+      return reservation;
     },
+    onSuccess: () => invalidateReservationData(tripId),
+  });
+}
+
+/** Exclui a reserva junto com o gasto e a atividade que ela criou. */
+export function useDeleteReservation(tripId: string) {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      unwrap(await supabase.from('expenses').delete().eq('reservation_id', id));
+      unwrap(await supabase.from('activities').delete().eq('reservation_id', id));
+      unwrap(await supabase.from('reservations').delete().eq('id', id));
+    },
+    onSuccess: () => invalidateReservationData(tripId),
   });
 }
 
@@ -116,6 +193,21 @@ export function useCreateExpense(tripId: string) {
   return useMutation({
     mutationFn: async (input: NewExpense) =>
       unwrap<Expense>(await supabase.from('expenses').insert({ ...input, trip_id: tripId }).select('*').single()),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.expenses(tripId) }),
+  });
+}
+
+export function useUpdateExpense(tripId: string) {
+  return useMutation({
+    mutationFn: async ({ id, ...input }: NewExpense & { id: string }) =>
+      unwrap<Expense>(await supabase.from('expenses').update(input).eq('id', id).select('*').single()),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.expenses(tripId) }),
+  });
+}
+
+export function useDeleteExpense(tripId: string) {
+  return useMutation({
+    mutationFn: async (id: string) => unwrap(await supabase.from('expenses').delete().eq('id', id)),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.expenses(tripId) }),
   });
 }

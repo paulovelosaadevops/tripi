@@ -109,17 +109,26 @@ export default function ItineraryScreen() {
                   sem hora
                 </AppText>
               )}
-              <Surface radius={18} style={styles.card}>
-                <AppText variant="bodyStrong" weight="extrabold">
-                  {item.title}
-                </AppText>
-                {item.place && (
-                  <AppText variant="small" tone="muted">
-                    {item.place}
-                  </AppText>
+              <Pressable
+                style={styles.flex}
+                onPress={() => router.push({ pathname: '/viagem/[id]/atividade-nova', params: { id, editId: item.id } })}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.title}${item.place ? `, ${item.place}` : ''}`}
+                accessibilityHint="Toque para editar ou excluir">
+                {({ pressed }) => (
+                  <Surface radius={18} style={[styles.card, pressed && styles.pressed]}>
+                    <AppText variant="bodyStrong" weight="extrabold">
+                      {item.title}
+                    </AppText>
+                    {item.place && (
+                      <AppText variant="small" tone="muted">
+                        {item.place}
+                      </AppText>
+                    )}
+                    <Tag label={ActivityCategoryLabels[item.category]} bg={tint.bg} fg={tint.fg} />
+                  </Surface>
                 )}
-                <Tag label={ActivityCategoryLabels[item.category]} bg={tint.bg} fg={tint.fg} />
-              </Surface>
+              </Pressable>
             </View>
           );
         })}
@@ -143,4 +152,5 @@ const styles = StyleSheet.create({
   time: { width: 56, paddingTop: 14 },
   noTime: { paddingTop: 17, fontSize: 11 },
   card: { flex: 1, padding: 14, gap: 6 },
+  pressed: { opacity: 0.85 },
 });

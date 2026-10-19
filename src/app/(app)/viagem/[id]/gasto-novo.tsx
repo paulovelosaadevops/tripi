@@ -1,48 +1,70 @@
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Platform, StyleSheet, TextInput } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { ChipGroup } from '@/components/ui/chip';
 import { DateField, TextField } from '@/components/ui/field';
-import { Screen, ScreenHeader } from '@/components/ui/layout';
+import { ErrorView, LoadingView, Screen, ScreenHeader } from '@/components/ui/layout';
 import { Surface } from '@/components/ui/surface';
 import { SwitchRow } from '@/components/ui/switch-row';
 import { AppText } from '@/components/ui/text';
-import { useCreateExpense } from '@/data/trip-content';
+import { useCreateExpense, useDeleteExpense, useExpenses, useUpdateExpense } from '@/data/trip-content';
 import { useTrip, useTripMembers } from '@/data/trips';
-import { firstName, formatBrazilianDate, parseBrazilianDate, parseMoney, toISODate } from '@/lib/format';
+import { confirmAction } from '@/lib/confirm';
+import { firstName, formatBrazilianDate, moneyInput, parseBrazilianDate, parseMoney, toISODate } from '@/lib/format';
 import { ExpenseCategoryLabels } from '@/lib/labels';
-import type { ExpenseCategory } from '@/lib/types';
+import { closeScreen } from '@/lib/navigation';
+import type { Expense, ExpenseCategory } from '@/lib/types';
 import { useAuth } from '@/providers/auth-provider';
+import { useTripId } from '@/providers/trip-id';
 import { useAppTheme } from '@/theme/theme-provider';
 import { FontFamily } from '@/theme/tokens';
-import { useTripId } from '@/providers/trip-id';
-import { closeScreen } from '@/lib/navigation';
 
 const categories = (Object.keys(ExpenseCategoryLabels) as ExpenseCategory[]).map((value) => ({
   value,
   label: ExpenseCategoryLabels[value],
 }));
 
-export default function NewExpenseScreen() {
+/** Novo gasto, ou edição quando recebe `editId`. */
+export default function ExpenseScreen() {
   const id = useTripId();
+  const { editId } = useLocalSearchParams<{ editId?: string }>();
+  const expenses = useExpenses(id);
+  if (!editId) return <ExpenseForm tripId={id} />;
+  const expense = expenses.data?.find((e) => e.id === editId);
+  if (expenses.isPending) return <LoadingView />;
+  if (!expense) {
+    return (
+      <Screen modal header={<ScreenHeader title="Gasto" leading="close" />}>
+        <ErrorView message="Este gasto não existe mais." />
+      </Screen>
+    );
+  }
+  return <ExpenseForm tripId={id} expense={expense} />;
+}
+
+function ExpenseForm({ tripId, expense }: { tripId: string; expense?: Expense }) {
   const { session } = useAuth();
   const { colors } = useAppTheme();
-  const trip = useTrip(id);
-  const members = useTripMembers(id);
-  const create = useCreateExpense(id);
+  const trip = useTrip(tripId);
+  const members = useTripMembers(tripId);
+  const create = useCreateExpense(tripId);
+  const update = useUpdateExpense(tripId);
+  const remove = useDeleteExpense(tripId);
   const localCurrency = trip.data?.local_currency ?? 'EUR';
+  const editing = Boolean(expense);
 
-  const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState<string>(localCurrency);
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<ExpenseCategory>('alimentacao');
-  const [date, setDate] = useState(formatBrazilianDate(toISODate(new Date())));
-  const [paidBy, setPaidBy] = useState(session?.user.id ?? '');
-  const [split, setSplit] = useState(true);
+  const [amount, setAmount] = useState(moneyInput(expense?.amount));
+  const [currency, setCurrency] = useState<string>(expense?.currency ?? localCurrency);
+  const [description, setDescription] = useState(expense?.description ?? '');
+  const [category, setCategory] = useState<ExpenseCategory>(expense?.category ?? 'alimentacao');
+  const [date, setDate] = useState(formatBrazilianDate(expense?.spent_on ?? toISODate(new Date())));
+  const [paidBy, setPaidBy] = useState(expense?.paid_by ?? session?.user.id ?? '');
+  const [split, setSplit] = useState(expense?.split_equally ?? true);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const currencies = [...new Set([localCurrency, 'BRL', 'USD', 'EUR'])].map((c) => ({ value: c, label: c }));
+  const currencies = [...new Set([currency, localCurrency, 'BRL', 'USD', 'EUR'])].map((c) => ({ value: c, label: c }));
   const payers = (members.data ?? []).map((m) => ({
     value: m.user_id,
     label: m.user_id === session?.user.id ? 'Eu' : firstName(m.profiles?.name ?? '') || 'Viajante',
@@ -59,26 +81,39 @@ export default function NewExpenseScreen() {
     setErrors(next);
     if (Object.keys(next).length > 0) return;
 
+    const input = {
+      amount: value!,
+      currency,
+      description: description.trim(),
+      category,
+      spent_on: spentOn!,
+      paid_by: paidBy || session!.user.id,
+      split_equally: split,
+    };
     try {
-      await create.mutateAsync({
-        amount: value!,
-        currency,
-        description: description.trim(),
-        category,
-        spent_on: spentOn!,
-        paid_by: paidBy || session!.user.id,
-        split_equally: split,
-      });
-      closeScreen({ pathname: '/viagem/[id]', params: { id } });
+      if (expense) await update.mutateAsync({ id: expense.id, ...input });
+      else await create.mutateAsync(input);
+      closeScreen({ pathname: '/viagem/[id]', params: { id: tripId } });
     } catch {
       setErrors({ form: 'Não foi possível salvar. Verifique a conexão e tente de novo.' });
+    }
+  }
+
+  async function destroy() {
+    if (!expense) return;
+    if (!(await confirmAction('Excluir gasto?', `"${expense.description}" sai dos gastos de todos os viajantes.`, 'Excluir'))) return;
+    try {
+      await remove.mutateAsync(expense.id);
+      closeScreen({ pathname: '/viagem/[id]', params: { id: tripId } });
+    } catch {
+      setErrors({ form: 'Não foi possível excluir. Tente de novo.' });
     }
   }
 
   return (
     <Screen
       modal
-      header={<ScreenHeader title="Novo gasto" leading="close" />}
+      header={<ScreenHeader title={editing ? 'Editar gasto' : 'Novo gasto'} leading="close" />}
       footer={
         <>
           {errors.form && (
@@ -86,9 +121,15 @@ export default function NewExpenseScreen() {
               {errors.form}
             </AppText>
           )}
-          <Button label="Salvar gasto" loading={create.isPending} onPress={save} />
+          <Button label={editing ? 'Salvar alterações' : 'Salvar gasto'} loading={create.isPending || update.isPending} onPress={save} />
+          {editing && <Button label="Excluir gasto" variant="danger" size="medium" loading={remove.isPending} onPress={destroy} />}
         </>
       }>
+      {expense?.reservation_id && (
+        <AppText variant="small" tone="muted">
+          Este gasto veio de uma reserva. Se você editar a reserva depois, ele é atualizado de novo a partir dela.
+        </AppText>
+      )}
       <Surface variant="hero" radius={26} style={styles.amountCard}>
         <AppText variant="small" weight="bold" tone="heroMuted">
           Valor em {currency}
@@ -100,7 +141,7 @@ export default function NewExpenseScreen() {
           placeholderTextColor={colors.heroMuted}
           keyboardType="decimal-pad"
           accessibilityLabel={`Valor em ${currency}`}
-          autoFocus
+          autoFocus={!editing}
           style={[styles.amountInput, { color: colors.heroText }]}
         />
         {errors.amount && (

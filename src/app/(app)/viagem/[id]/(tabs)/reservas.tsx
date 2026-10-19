@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { SkeletonBlock } from '@/components/skeleton';
 import { useTabBarSpace } from '@/components/trip-tab-bar';
@@ -77,7 +77,14 @@ export default function ReservationsScreen() {
           const tint = reservationTint(colors, r.kind);
           const sub = [timeLabel(r.starts_at), r.place].filter(Boolean).join(' · ');
           return (
-            <Surface key={r.id} style={styles.card} accessible accessibilityLabel={`${ReservationKindLabels[r.kind]}: ${r.title}, ${dateLabel(r)}`}>
+            <Pressable
+              key={r.id}
+              onPress={() => router.push({ pathname: '/viagem/[id]/reserva-nova', params: { id, editId: r.id } })}
+              accessibilityRole="button"
+              accessibilityLabel={`${ReservationKindLabels[r.kind]}: ${r.title}, ${dateLabel(r)}`}
+              accessibilityHint="Toque para editar ou excluir">
+              {({ pressed }) => (
+            <Surface style={[styles.card, pressed && styles.pressed]}>
               <View style={styles.cardTop}>
                 <Tag label={ReservationKindLabels[r.kind]} bg={tint.bg} fg={tint.fg} />
                 <AppText variant="small" weight="bold" tone="muted">
@@ -98,6 +105,8 @@ export default function ReservationsScreen() {
                 )}
               </View>
             </Surface>
+              )}
+            </Pressable>
           );
         })}
       </Screen>
@@ -111,6 +120,7 @@ const styles = StyleSheet.create({
   header: { paddingBottom: 4 },
   filters: { paddingLeft: 20 },
   card: { padding: 16, gap: 10 },
+  pressed: { opacity: 0.85 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: 17 },
   cardBottom: { flexDirection: 'row', alignItems: 'center', gap: 12 },
