@@ -6,19 +6,25 @@ import {
   Manrope_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/manrope';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { SetupNotice } from '@/components/setup-notice';
+import { CACHE_BUSTER, CACHE_MAX_AGE, persister } from '@/data/offline';
 import { queryClient } from '@/data/query-client';
+// Registram as alterações que funcionam offline antes de a fila salva ser retomada.
+import '@/data/trip-content';
+import '@/data/trip-extras';
+import { registerServiceWorker } from '@/lib/service-worker';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { AuthProvider, useAuth } from '@/providers/auth-provider';
 import { AppThemeProvider, useAppTheme } from '@/theme/theme-provider';
 
 SplashScreen.preventAutoHideAsync();
+registerServiceWorker();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -31,13 +37,24 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{
+          persister,
+          maxAge: CACHE_MAX_AGE,
+          buster: CACHE_BUSTER,
+          // Lista que já tem dados continua salva mesmo se a última atualização falhou (sem internet, por exemplo).
+          dehydrateOptions: { shouldDehydrateQuery: (query) => query.state.data !== undefined },
+        }}
+        // Alterações feitas offline numa sessão anterior seguem para a nuvem assim que houver conexão; depois,
+        // tudo o que veio do aparelho é conferido com a nuvem (com internet).
+        onSuccess={() => queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries())}>
         <AuthProvider>
           <AppThemeProvider>
             <RootNavigator fontsLoaded={fontsLoaded} />
           </AppThemeProvider>
         </AuthProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </SafeAreaProvider>
   );
 }

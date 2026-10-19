@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ConnectionBanner } from '@/components/connection-banner';
 import { IconButton } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Backdrop, Surface } from '@/components/ui/surface';
@@ -58,6 +59,7 @@ export function Screen({ children, footer, header, scroll = true, contentStyle, 
       <Backdrop />
       <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={[styles.fill, { paddingTop: topInset }]}>
+          <ConnectionBanner />
           {header}
           {content}
           {footer && <FooterBar>{footer}</FooterBar>}

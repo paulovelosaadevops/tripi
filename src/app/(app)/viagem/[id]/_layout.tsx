@@ -1,11 +1,16 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 
-import { useTripRealtime } from '@/data/trip-content';
+import { useRates } from '@/data/exchange';
+import { useSettlements } from '@/data/settle';
+import { useActivities, useChecklist, useExpenses, useReservations, useTripRealtime } from '@/data/trip-content';
+import { useContacts, useDocuments, useNotes } from '@/data/trip-extras';
+import { useTrip, useTripMembers } from '@/data/trips';
 import { TripIdProvider } from '@/providers/trip-id';
 
 export default function TripLayout() {
   const { id } = useLocalSearchParams<{ id: string }>();
   useTripRealtime(id);
+  useWholeTripCached(id);
 
   return (
     <TripIdProvider id={id}>
@@ -31,4 +36,22 @@ export default function TripLayout() {
       </Stack>
     </TripIdProvider>
   );
+}
+
+/**
+ * Modo offline: ao abrir a viagem, carrega todas as listas (não só as da aba aberta). Assim, tudo o que é da
+ * viagem fica salvo no aparelho e abre depois sem internet — inclusive a cotação para converter os gastos.
+ */
+function useWholeTripCached(id: string) {
+  const trip = useTrip(id);
+  useTripMembers(id);
+  useActivities(id);
+  useReservations(id);
+  useExpenses(id);
+  useChecklist(id);
+  useContacts(id);
+  useNotes(id);
+  useDocuments(id);
+  useSettlements(id);
+  useRates(trip.data?.local_currency);
 }

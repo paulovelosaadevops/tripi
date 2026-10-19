@@ -39,7 +39,7 @@ export default function ChecklistScreen() {
   };
 
   const askDelete = async (item: ChecklistItem) => {
-    if (await confirmAction('Remover item?', item.label, 'Remover')) remove.mutate(item.id);
+    if (await confirmAction('Remover item?', item.label, 'Remover')) remove.mutate({ id: item.id });
   };
 
   return (

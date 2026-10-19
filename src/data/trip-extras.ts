@@ -1,5 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
+import * as Crypto from 'expo-crypto';
 
+import { offlineMutation } from '@/data/offline';
 import { keys, queryClient, unwrap } from '@/data/query-client';
 import { readFileBytes } from '@/lib/read-file';
 import { supabase } from '@/lib/supabase';
@@ -43,22 +45,32 @@ export function useNotes(tripId: string) {
   });
 }
 
-export function useSaveNote(tripId: string) {
-  return useMutation({
-    mutationFn: async ({ id, ...input }: { id?: string; title: string; body: string; tag: string | null }) =>
-      id
-        ? unwrap(await supabase.from('notes').update(input).eq('id', id))
-        : unwrap(await supabase.from('notes').insert({ ...input, trip_id: tripId })),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.notes(tripId) }),
-  });
-}
+type NoteInput = { id?: string; isNew?: boolean; title: string; body: string; tag: string | null };
 
-export function useDeleteNote(tripId: string) {
-  return useMutation({
-    mutationFn: async (id: string) => unwrap(await supabase.from('notes').delete().eq('id', id)),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.notes(tripId) }),
-  });
-}
+/** Funciona offline: a anotação aparece na hora e vai para a nuvem quando houver conexão. */
+export const useSaveNote = offlineMutation<NoteInput, Note>({
+  key: 'note-save',
+  prepare: (input) => (input.id ? input : { ...input, id: Crypto.randomUUID(), isNew: true }),
+  send: async ({ tripId, id, isNew, ...input }) =>
+    isNew
+      ? unwrap(await supabase.from('notes').insert({ ...input, id, trip_id: tripId }))
+      : unwrap(await supabase.from('notes').update(input).eq('id', id!)),
+  list: keys.notes,
+  apply: (rows, { tripId, id, isNew, ...input }) => {
+    const now = new Date().toISOString();
+    if (isNew) return [{ ...input, id: id!, trip_id: tripId, created_by: '', created_at: now, updated_at: now }, ...rows];
+    return [...rows.map((row) => (row.id === id ? { ...row, ...input, updated_at: now } : row))].sort((a, b) =>
+      b.updated_at.localeCompare(a.updated_at),
+    );
+  },
+});
+
+export const useDeleteNote = offlineMutation<{ id: string }, Note>({
+  key: 'note-delete',
+  send: async ({ id }) => unwrap(await supabase.from('notes').delete().eq('id', id)),
+  list: keys.notes,
+  apply: (rows, { id }) => rows.filter((row) => row.id !== id),
+});
 
 // ── Documentos ────────────────────────────────────────────────
 

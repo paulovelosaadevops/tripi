@@ -1,3 +1,4 @@
+import { onlineManager } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
@@ -74,6 +75,10 @@ export default function NewDocumentScreen() {
     if (expires && !expiresISO) next.expires = 'Data inválida.';
     setErrors(next);
     if (Object.keys(next).length > 0) return;
+    if (!onlineManager.isOnline()) {
+      setErrors({ form: 'Sem conexão. Para enviar o documento é preciso internet; tente de novo quando conectar.' });
+      return;
+    }
     try {
       await upload.mutateAsync({ file: file!, name: name.trim(), kind, visibility, expires_on: expiresISO });
       closeScreen({ pathname: '/viagem/[id]', params: { id } });

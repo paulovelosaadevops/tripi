@@ -7,6 +7,7 @@ import { ChipGroup } from '@/components/ui/chip';
 import { DateField, TextField, TimeField } from '@/components/ui/field';
 import { ErrorView, layoutStyles, LoadingView, Screen, ScreenHeader } from '@/components/ui/layout';
 import { AppText } from '@/components/ui/text';
+import { commit } from '@/data/offline';
 import { useActivities, useCreateActivity, useDeleteActivity, useUpdateActivity } from '@/data/trip-content';
 import { useTrip } from '@/data/trips';
 import { confirmAction } from '@/lib/confirm';
@@ -94,8 +95,8 @@ function ActivityForm({ tripId, activity }: { tripId: string; activity?: Activit
       notes: notes.trim() || null,
     };
     try {
-      if (activity) await update.mutateAsync({ id: activity.id, ...input });
-      else await create.mutateAsync(input);
+      if (activity) await commit(update, { id: activity.id, ...input });
+      else await commit(create, input);
       closeScreen({ pathname: '/viagem/[id]', params: { id: tripId } });
     } catch {
       setErrors({ form: 'Não foi possível salvar. Verifique a conexão e tente de novo.' });
@@ -106,7 +107,7 @@ function ActivityForm({ tripId, activity }: { tripId: string; activity?: Activit
     if (!activity) return;
     if (!(await confirmAction('Excluir atividade?', `"${activity.title}" sai do roteiro de todos os viajantes.`, 'Excluir'))) return;
     try {
-      await remove.mutateAsync(activity.id);
+      await commit(remove, { id: activity.id });
       closeScreen({ pathname: '/viagem/[id]', params: { id: tripId } });
     } catch {
       setErrors({ form: 'Não foi possível excluir. Tente de novo.' });

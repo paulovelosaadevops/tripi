@@ -9,6 +9,7 @@ import { ErrorView, LoadingView, Screen, ScreenHeader } from '@/components/ui/la
 import { Surface } from '@/components/ui/surface';
 import { SwitchRow } from '@/components/ui/switch-row';
 import { AppText } from '@/components/ui/text';
+import { commit } from '@/data/offline';
 import { useCreateExpense, useDeleteExpense, useExpenses, useUpdateExpense } from '@/data/trip-content';
 import { useTrip, useTripMembers } from '@/data/trips';
 import { confirmAction } from '@/lib/confirm';
@@ -91,8 +92,8 @@ function ExpenseForm({ tripId, expense }: { tripId: string; expense?: Expense })
       split_equally: split,
     };
     try {
-      if (expense) await update.mutateAsync({ id: expense.id, ...input });
-      else await create.mutateAsync(input);
+      if (expense) await commit(update, { id: expense.id, ...input });
+      else await commit(create, input);
       closeScreen({ pathname: '/viagem/[id]', params: { id: tripId } });
     } catch {
       setErrors({ form: 'Não foi possível salvar. Verifique a conexão e tente de novo.' });
@@ -103,7 +104,7 @@ function ExpenseForm({ tripId, expense }: { tripId: string; expense?: Expense })
     if (!expense) return;
     if (!(await confirmAction('Excluir gasto?', `"${expense.description}" sai dos gastos de todos os viajantes.`, 'Excluir'))) return;
     try {
-      await remove.mutateAsync(expense.id);
+      await commit(remove, { id: expense.id });
       closeScreen({ pathname: '/viagem/[id]', params: { id: tripId } });
     } catch {
       setErrors({ form: 'Não foi possível excluir. Tente de novo.' });

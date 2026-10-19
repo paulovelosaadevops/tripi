@@ -1,3 +1,4 @@
+import { onlineManager } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -16,6 +17,8 @@ import { ReservationFieldLabels, ReservationKindLabels } from '@/lib/labels';
 import { closeScreen } from '@/lib/navigation';
 import type { ActivityCategory, Reservation, ReservationKind } from '@/lib/types';
 import { useTripId } from '@/providers/trip-id';
+
+const OFFLINE_MESSAGE = 'Sem conexão. Reservas precisam de internet para salvar, porque o gasto e o roteiro ligados a elas mudam juntos.';
 
 const kinds = (Object.keys(ReservationKindLabels) as ReservationKind[]).map((value) => ({ value, label: ReservationKindLabels[value] }));
 
@@ -87,6 +90,10 @@ function ReservationForm({ tripId, reservation }: { tripId: string; reservation?
   const currencies = [...new Set([currency, localCurrency, 'BRL', 'USD', 'EUR'])].map((c) => ({ value: c, label: c }));
 
   async function save() {
+    if (!onlineManager.isOnline()) {
+      setErrors({ form: OFFLINE_MESSAGE });
+      return;
+    }
     const next: Record<string, string> = {};
     if (!title.trim()) next.title = 'Preencha este campo.';
     const startsAt = startDate ? toTimestamp(startDate, startTime) : null;
@@ -139,6 +146,10 @@ function ReservationForm({ tripId, reservation }: { tripId: string; reservation?
 
   async function destroy() {
     if (!reservation) return;
+    if (!onlineManager.isOnline()) {
+      setErrors({ form: OFFLINE_MESSAGE });
+      return;
+    }
     const confirmed = await confirmAction(
       'Excluir reserva?',
       `"${reservation.title}" será apagada para todos, junto com o gasto e a atividade do roteiro criados por ela.`,

@@ -1,6 +1,8 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
+import * as Crypto from 'expo-crypto';
 import { useEffect } from 'react';
 
+import { offlineMutation } from '@/data/offline';
 import { keys, queryClient, unwrap } from '@/data/query-client';
 import { supabase } from '@/lib/supabase';
 import type { Activity, ActivityCategory, ChecklistItem, Expense, ExpenseCategory, Reservation, ReservationKind } from '@/lib/types';
@@ -30,28 +32,35 @@ export type NewActivity = {
   reservation_id?: string | null;
 };
 
-export function useCreateActivity(tripId: string) {
-  return useMutation({
-    mutationFn: async (input: NewActivity) =>
-      unwrap<Activity>(await supabase.from('activities').insert({ ...input, trip_id: tripId }).select('*').single()),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.activities(tripId) }),
-  });
-}
+const byDayAndTime = (a: Activity, b: Activity) =>
+  a.day.localeCompare(b.day) || (a.start_time ?? '99').localeCompare(b.start_time ?? '99') || a.created_at.localeCompare(b.created_at);
 
-export function useUpdateActivity(tripId: string) {
-  return useMutation({
-    mutationFn: async ({ id, ...input }: NewActivity & { id: string }) =>
-      unwrap<Activity>(await supabase.from('activities').update(input).eq('id', id).select('*').single()),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.activities(tripId) }),
-  });
-}
+/** Funciona offline: aparece no roteiro na hora e vai para a nuvem quando houver conexão. */
+export const useCreateActivity = offlineMutation<NewActivity & { id?: string }, Activity>({
+  key: 'activity-create',
+  prepare: (input) => ({ ...input, id: input.id ?? Crypto.randomUUID() }),
+  send: async ({ tripId, ...input }) => unwrap(await supabase.from('activities').insert({ ...input, trip_id: tripId })),
+  list: keys.activities,
+  apply: (rows, { tripId, ...input }) =>
+    [
+      ...rows,
+      { reservation_id: null, created_by: '', created_at: new Date().toISOString(), ...input, id: input.id!, trip_id: tripId },
+    ].sort(byDayAndTime),
+});
 
-export function useDeleteActivity(tripId: string) {
-  return useMutation({
-    mutationFn: async (id: string) => unwrap(await supabase.from('activities').delete().eq('id', id)),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.activities(tripId) }),
-  });
-}
+export const useUpdateActivity = offlineMutation<NewActivity & { id: string }, Activity>({
+  key: 'activity-update',
+  send: async ({ tripId: _tripId, id, ...input }) => unwrap(await supabase.from('activities').update(input).eq('id', id)),
+  list: keys.activities,
+  apply: (rows, { tripId: _tripId, ...input }) => rows.map((row) => (row.id === input.id ? { ...row, ...input } : row)).sort(byDayAndTime),
+});
+
+export const useDeleteActivity = offlineMutation<{ id: string }, Activity>({
+  key: 'activity-delete',
+  send: async ({ id }) => unwrap(await supabase.from('activities').delete().eq('id', id)),
+  list: keys.activities,
+  apply: (rows, { id }) => rows.filter((row) => row.id !== id),
+});
 
 // ── Reservas ──────────────────────────────────────────────────
 
@@ -189,28 +198,42 @@ export type NewExpense = {
   split_equally: boolean;
 };
 
-export function useCreateExpense(tripId: string) {
-  return useMutation({
-    mutationFn: async (input: NewExpense) =>
-      unwrap<Expense>(await supabase.from('expenses').insert({ ...input, trip_id: tripId }).select('*').single()),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.expenses(tripId) }),
-  });
-}
+const newestFirst = (a: Expense, b: Expense) => b.spent_on.localeCompare(a.spent_on) || b.created_at.localeCompare(a.created_at);
 
-export function useUpdateExpense(tripId: string) {
-  return useMutation({
-    mutationFn: async ({ id, ...input }: NewExpense & { id: string }) =>
-      unwrap<Expense>(await supabase.from('expenses').update(input).eq('id', id).select('*').single()),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.expenses(tripId) }),
-  });
-}
+/** Funciona offline: entra nos gastos na hora e vai para a nuvem quando houver conexão. */
+export const useCreateExpense = offlineMutation<NewExpense & { id?: string }, Expense>({
+  key: 'expense-create',
+  prepare: (input) => ({ ...input, id: input.id ?? Crypto.randomUUID() }),
+  send: async ({ tripId, ...input }) => unwrap(await supabase.from('expenses').insert({ ...input, trip_id: tripId })),
+  list: keys.expenses,
+  apply: (rows, { tripId, ...input }) =>
+    [
+      {
+        receipt_path: null,
+        reservation_id: null,
+        created_by: input.paid_by,
+        created_at: new Date().toISOString(),
+        ...input,
+        id: input.id!,
+        trip_id: tripId,
+      },
+      ...rows,
+    ].sort(newestFirst),
+});
 
-export function useDeleteExpense(tripId: string) {
-  return useMutation({
-    mutationFn: async (id: string) => unwrap(await supabase.from('expenses').delete().eq('id', id)),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.expenses(tripId) }),
-  });
-}
+export const useUpdateExpense = offlineMutation<NewExpense & { id: string }, Expense>({
+  key: 'expense-update',
+  send: async ({ tripId: _tripId, id, ...input }) => unwrap(await supabase.from('expenses').update(input).eq('id', id)),
+  list: keys.expenses,
+  apply: (rows, { tripId: _tripId, ...input }) => rows.map((row) => (row.id === input.id ? { ...row, ...input } : row)).sort(newestFirst),
+});
+
+export const useDeleteExpense = offlineMutation<{ id: string }, Expense>({
+  key: 'expense-delete',
+  send: async ({ id }) => unwrap(await supabase.from('expenses').delete().eq('id', id)),
+  list: keys.expenses,
+  apply: (rows, { id }) => rows.filter((row) => row.id !== id),
+});
 
 // ── Checklist ─────────────────────────────────────────────────
 
@@ -222,38 +245,32 @@ export function useChecklist(tripId: string) {
   });
 }
 
-/** Marca/desmarca já na tela e desfaz se a nuvem recusar. */
-export function useToggleChecklistItem(tripId: string) {
-  return useMutation({
-    mutationFn: async ({ id, done }: { id: string; done: boolean }) =>
-      unwrap(await supabase.from('checklist_items').update({ done }).eq('id', id)),
-    onMutate: async ({ id, done }) => {
-      await queryClient.cancelQueries({ queryKey: keys.checklist(tripId) });
-      const previous = queryClient.getQueryData<ChecklistItem[]>(keys.checklist(tripId));
-      queryClient.setQueryData<ChecklistItem[]>(keys.checklist(tripId), (items) =>
-        items?.map((item) => (item.id === id ? { ...item, done } : item)),
-      );
-      return { previous };
-    },
-    onError: (_error, _input, context) => queryClient.setQueryData(keys.checklist(tripId), context?.previous),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: keys.checklist(tripId) }),
-  });
-}
+/** Marca/desmarca já na tela (também offline) e desfaz se a nuvem recusar. */
+export const useToggleChecklistItem = offlineMutation<{ id: string; done: boolean }, ChecklistItem>({
+  key: 'checklist-toggle',
+  send: async ({ id, done }) => unwrap(await supabase.from('checklist_items').update({ done }).eq('id', id)),
+  list: keys.checklist,
+  apply: (rows, { id, done }) => rows.map((row) => (row.id === id ? { ...row, done } : row)),
+});
 
-export function useAddChecklistItem(tripId: string) {
-  return useMutation({
-    mutationFn: async ({ label, group }: { label: string; group: string }) =>
-      unwrap(await supabase.from('checklist_items').insert({ trip_id: tripId, label, group_name: group, position: 10_000 })),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.checklist(tripId) }),
-  });
-}
+export const useAddChecklistItem = offlineMutation<{ id?: string; label: string; group: string }, ChecklistItem>({
+  key: 'checklist-add',
+  prepare: (input) => ({ ...input, id: input.id ?? Crypto.randomUUID() }),
+  send: async ({ tripId, id, label, group }) =>
+    unwrap(await supabase.from('checklist_items').insert({ id, trip_id: tripId, label, group_name: group, position: 10_000 })),
+  list: keys.checklist,
+  apply: (rows, { tripId, id, label, group }) => [
+    ...rows,
+    { id: id!, trip_id: tripId, label, group_name: group, done: false, position: 10_000, created_at: new Date().toISOString() },
+  ],
+});
 
-export function useDeleteChecklistItem(tripId: string) {
-  return useMutation({
-    mutationFn: async (id: string) => unwrap(await supabase.from('checklist_items').delete().eq('id', id)),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.checklist(tripId) }),
-  });
-}
+export const useDeleteChecklistItem = offlineMutation<{ id: string }, ChecklistItem>({
+  key: 'checklist-delete',
+  send: async ({ id }) => unwrap(await supabase.from('checklist_items').delete().eq('id', id)),
+  list: keys.checklist,
+  apply: (rows, { id }) => rows.filter((row) => row.id !== id),
+});
 
 // ── Tempo real ────────────────────────────────────────────────
 

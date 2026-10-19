@@ -4,6 +4,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { createContext, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react';
 import { Platform } from 'react-native';
 
+import { persister } from '@/data/offline';
 import { queryClient } from '@/data/query-client';
 import { isSupabaseConfigured, supabase, supabaseEmailLinks } from '@/lib/supabase';
 import { emailLinkTarget } from '@/lib/web-url';
@@ -40,24 +41,48 @@ export function authErrorMessage(error: unknown): string {
   return 'Não foi possível concluir. Tente de novo.';
 }
 
+const CACHE_OWNER_KEY = 'tripi-cache-owner';
+
+function readCacheOwner(): string | undefined {
+  try {
+    return globalThis.localStorage.getItem(CACHE_OWNER_KEY) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeCacheOwner(userId: string | undefined) {
+  try {
+    if (userId) globalThis.localStorage.setItem(CACHE_OWNER_KEY, userId);
+    else globalThis.localStorage.removeItem(CACHE_OWNER_KEY);
+  } catch {
+    // Sem armazenamento (navegação privada): o cache só vive na memória.
+  }
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
-    let currentUserId: string | undefined;
+    // Dono do cache salvo no aparelho (modo offline). Ao sair ou trocar de conta, nada do usuário anterior
+    // pode ficar em cache — nem na memória, nem salvo.
+    let cacheOwner = readCacheOwner();
+    const checkOwner = (userId: string | undefined) => {
+      if (userId === cacheOwner) return;
+      queryClient.clear();
+      persister.removeClient();
+      cacheOwner = userId;
+      writeCacheOwner(userId);
+    };
     supabase.auth.getSession().then(({ data }) => {
-      currentUserId = data.session?.user.id;
+      checkOwner(data.session?.user.id);
       setSession(data.session);
       setIsLoading(false);
     });
     const { data } = supabase.auth.onAuthStateChange((_event, next) => {
-      // Ao sair ou trocar de conta, nada do usuário anterior pode ficar em cache.
-      if (next?.user.id !== currentUserId) {
-        queryClient.clear();
-        currentUserId = next?.user.id;
-      }
+      checkOwner(next?.user.id);
       setSession(next);
     });
     return () => data.subscription.unsubscribe();

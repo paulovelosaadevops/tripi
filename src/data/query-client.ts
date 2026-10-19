@@ -4,6 +4,9 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30_000,
+      // O cache fica salvo no aparelho (modo offline): dados sem uso não podem sumir antes disso.
+      // Mesmo valor de CACHE_MAX_AGE (data/offline.ts); acima de ~24,8 dias o setTimeout estoura.
+      gcTime: 20 * 24 * 60 * 60 * 1000,
       retry: 2,
     },
   },

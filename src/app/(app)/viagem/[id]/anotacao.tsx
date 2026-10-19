@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/field';
 import { Screen, ScreenHeader } from '@/components/ui/layout';
 import { AppText } from '@/components/ui/text';
+import { commit } from '@/data/offline';
 import { useDeleteNote, useNotes, useSaveNote } from '@/data/trip-extras';
 import { confirmAction } from '@/lib/confirm';
 import { useTripId } from '@/providers/trip-id';
@@ -28,7 +29,7 @@ export default function NoteEditorScreen() {
     if (!title.trim() && !body.trim()) return setError('Escreva um título ou um texto.');
     setError(null);
     try {
-      await save.mutateAsync({ id: noteId, title: title.trim(), body: body.trim(), tag: tag.trim() || null });
+      await commit(save, { id: noteId, title: title.trim(), body: body.trim(), tag: tag.trim() || null });
       closeScreen({ pathname: '/viagem/[id]', params: { id } });
     } catch {
       setError('Não foi possível salvar. Tente de novo.');
@@ -55,7 +56,7 @@ export default function NoteEditorScreen() {
               loading={remove.isPending}
               onPress={async () => {
                 if (!(await confirmAction('Excluir anotação?', 'Ela some para todos os viajantes.', 'Excluir'))) return;
-                await remove.mutateAsync(noteId);
+                await commit(remove, { id: noteId });
                 closeScreen({ pathname: '/viagem/[id]', params: { id } });
               }}
             />
