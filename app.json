@@ -19,11 +19,19 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "Tripi",
+      "shortName": "Tripi",
+      "lang": "pt-BR",
+      "themeColor": "#0B3D2E",
+      "backgroundColor": "#0B3D2E"
     },
     "plugins": [
       "expo-router",
@@ -49,13 +57,21 @@
         "expo-image-picker",
         {
           "photosPermission": "O Tripi usa suas fotos para anexar documentos e comprovantes à viagem.",
-          "cameraPermission": "O Tripi usa a câmera para fotografar documentos e comprovantes."
+          "cameraPermission": "O Tripi usa a câmera para fotografar documentos e comprovantes.",
+          "microphonePermission": false
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6bc1bbc3-fdd7-4c21-9994-aa0ae341fc0d"
+      }
+    },
+    "owner": "paulovelosaaa"
   }
 }

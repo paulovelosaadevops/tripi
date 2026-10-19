@@ -64,6 +64,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
         <Stack.Screen name="(app)" />
       </Stack.Protected>
       <Stack.Screen name="auth/callback" />
+      <Stack.Screen name="auth/confirmar" />
     </Stack>
   );
 }

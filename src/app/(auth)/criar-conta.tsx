@@ -1,12 +1,13 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Screen, ScreenHeader } from '@/components/ui/layout';
 import { AppText } from '@/components/ui/text';
+import { showAppleLogin, showGoogleLogin } from '@/lib/auth-providers';
 import { authErrorMessage, useAuth } from '@/providers/auth-provider';
 import { useAppTheme } from '@/theme/theme-provider';
 
@@ -56,10 +57,12 @@ export default function CreateAccountScreen() {
       header={<ScreenHeader title="Criar conta" />}
       footer={<Button label="Criar conta" loading={busy} onPress={submit} />}>
       <AppText tone="muted">Sua conta guarda as viagens na nuvem e sincroniza com quem viaja com você.</AppText>
-      {Platform.OS === 'ios' && (
+      {showAppleLogin && (
         <Button label="Continuar com Apple" variant="secondary" onPress={() => signInWithProvider('apple').catch((e) => setError(authErrorMessage(e)))} />
       )}
-      <Button label="Continuar com Google" variant="secondary" onPress={() => signInWithProvider('google').catch((e) => setError(authErrorMessage(e)))} />
+      {showGoogleLogin && (
+        <Button label="Continuar com Google" variant="secondary" onPress={() => signInWithProvider('google').catch((e) => setError(authErrorMessage(e)))} />
+      )}
       <View style={styles.form}>
         <TextField label="Nome" value={name} onChangeText={setName} placeholder="Como quer ser chamado" autoComplete="name" textContentType="name" />
         <TextField

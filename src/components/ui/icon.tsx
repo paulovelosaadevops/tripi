@@ -155,7 +155,7 @@ export function Icon({ name, size = 22, color, strokeWidth = 1.9 }: IconProps) {
 export function TripiMark({ size = 56, color }: { size?: number; color: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" stroke={color} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M10 36c4-10 10-4 14-12s10-10 14-6" strokeDasharray="1 6" />
+      <Path d="M10 36c4-7 9-3 14-7s7-4 11-2" strokeDasharray="1 6" />
       <Circle cx={10} cy={36} r={3.5} fill={color} />
       <Path d="M38 6c-4.4 0-8 3.4-8 7.6C30 19 38 26 38 26s8-7 8-12.4C46 9.4 42.4 6 38 6z" />
       <Circle cx={38} cy={13.5} r={2.5} fill={color} />

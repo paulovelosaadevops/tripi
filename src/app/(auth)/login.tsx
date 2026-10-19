@@ -1,6 +1,6 @@
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { TripiMark } from '@/components/ui/icon';
 import { Screen } from '@/components/ui/layout';
 import { Surface } from '@/components/ui/surface';
 import { AppText } from '@/components/ui/text';
+import { hasSocialLogin, showAppleLogin, showGoogleLogin } from '@/lib/auth-providers';
 import { authErrorMessage, useAuth, type OAuthProvider } from '@/providers/auth-provider';
 import { useAppTheme } from '@/theme/theme-provider';
 
@@ -62,7 +63,7 @@ export default function LoginScreen() {
       </View>
 
       <Surface variant={dark ? 'hero' : 'card'} radius={28} style={[styles.card, !dark && styles.flatCard]}>
-        {Platform.OS === 'ios' && (
+        {showAppleLogin && (
           <Button
             label="Continuar com Apple"
             variant="secondary"
@@ -70,19 +71,23 @@ export default function LoginScreen() {
             onPress={() => run('apple', () => signInWithProvider('apple'))}
           />
         )}
-        <Button
-          label="Continuar com Google"
-          variant="secondary"
-          loading={busy === 'google'}
-          onPress={() => run('google', () => signInWithProvider('google'))}
-        />
-        <View style={styles.divider}>
-          <View style={[styles.line, { backgroundColor: colors.track }]} />
-          <AppText variant="small" weight="bold" tone="muted">
-            ou com e-mail
-          </AppText>
-          <View style={[styles.line, { backgroundColor: colors.track }]} />
-        </View>
+        {showGoogleLogin && (
+          <Button
+            label="Continuar com Google"
+            variant="secondary"
+            loading={busy === 'google'}
+            onPress={() => run('google', () => signInWithProvider('google'))}
+          />
+        )}
+        {hasSocialLogin && (
+          <View style={styles.divider}>
+            <View style={[styles.line, { backgroundColor: colors.track }]} />
+            <AppText variant="small" weight="bold" tone="muted">
+              ou com e-mail
+            </AppText>
+            <View style={[styles.line, { backgroundColor: colors.track }]} />
+          </View>
+        )}
         <TextField
           label="E-mail"
           value={email}

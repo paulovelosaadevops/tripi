@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
 
 import { queryClient } from '@/data/query-client';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { emailLinkTarget } from '@/lib/web-url';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -23,7 +24,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-/** Endereço para onde o login com Apple/Google volta: tripi://auth/callback (ou a URL do site no web). */
+/** Para onde o login com Apple/Google volta: tripi://auth/callback (ou a URL do site no web). */
 const redirectTo = Linking.createURL('auth/callback');
 
 /** Mensagens do Supabase traduzidas para o usuário. */
@@ -74,7 +75,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
-          options: { data: { name: name.trim() }, emailRedirectTo: redirectTo },
+          options: { data: { name: name.trim() }, emailRedirectTo: emailLinkTarget('/auth/confirmar') },
         });
         if (error) throw error;
         return { needsConfirmation: !data.session };
@@ -98,7 +99,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (exchange.error) throw exchange.error;
       },
       async sendPasswordReset(email) {
-        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: emailLinkTarget('/auth/confirmar') });
         if (error) throw error;
       },
       async signOut() {
