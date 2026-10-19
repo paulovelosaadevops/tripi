@@ -52,7 +52,8 @@ export default function MoreScreen() {
           <ListRow icon="users" title="Viajantes" value={count(members.data)} onPress={() => go('viajantes')} />
           <ListRow icon="wallet" title="Câmbio" subtitle="Conversor com a cotação do dia" onPress={() => go('cambio')} />
           <ListRow icon="swap" title="Acerto de contas" subtitle="Quem deve para quem" onPress={() => go('acerto')} />
-          <ListRow icon="phone" title="Contatos de emergência" value={count(contacts.data)} onPress={() => go('contatos')} />
+          <ListRow icon="wallet2" title="Carteira de viagem" subtitle="Códigos de reserva e vouchers" onPress={() => go('carteira')} />
+          <ListRow icon="alert" title="Emergência" subtitle="Telefones do país e seus contatos" value={count(contacts.data)} onPress={() => go('emergencia')} />
           <ListRow icon="note" title="Anotações" value={count(notes.data)} onPress={() => go('anotacoes')} isLast />
         </Surface>
       </View>

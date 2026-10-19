@@ -2,14 +2,17 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AgendaList, PillButton } from '@/components/agenda-list';
 import { useTabBarSpace } from '@/components/trip-tab-bar';
 import { IconButton } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { ErrorView, LoadingView, ProgressBar, Screen, SectionTitle } from '@/components/ui/layout';
 import { Surface } from '@/components/ui/surface';
 import { AppText } from '@/components/ui/text';
+import { buildDayAgenda } from '@/data/agenda';
 import { summarizeBudget } from '@/data/budget';
 import { convert, useHomeCurrency, useRates } from '@/data/exchange';
+import { describeWeather, useTripWeather } from '@/data/weather';
 import { useActivities, useChecklist, useExpenses, useReservations } from '@/data/trip-content';
 import { useTrip, useTripMembers } from '@/data/trips';
 import { daysUntil, eachDay, formatDateRange, formatMoney, formatTime, formatWeekdayDayMonth, toISODate } from '@/lib/format';
@@ -28,6 +31,7 @@ export default function TripOverviewScreen() {
   const checklist = useChecklist(id);
   const rates = useRates(trip.data?.local_currency);
   const home = useHomeCurrency();
+  const weather = useTripWeather(trip.data?.destinations);
   const { colors, scheme } = useAppTheme();
   const insets = useSafeAreaInsets();
   const space = useTabBarSpace();
@@ -51,6 +55,12 @@ export default function TripOverviewScreen() {
 
   // Próximo compromisso: a próxima reserva ou atividade a partir de hoje.
   const today = toISODate(new Date());
+  // Durante a viagem, a tela começa pelo "Hoje": a agenda do dia com atalhos.
+  const tripDayList = t.start_date && t.end_date ? eachDay(t.start_date, t.end_date) : [];
+  const todayIndex = tripDayList.indexOf(today);
+  const inTrip = todayIndex >= 0;
+  const todayAgenda = inTrip ? buildDayAgenda(today, activities.data ?? [], reservations.data ?? []) : [];
+  const todayWeather = weather.forecast[today];
   const nextReservation = reservations.data?.find((r) => r.starts_at && r.starts_at.slice(0, 10) >= today);
   const nextActivity = activities.data?.find((a) => a.day >= today);
   const next =
@@ -129,7 +139,37 @@ export default function TripOverviewScreen() {
         </Surface>
       </View>
 
-      {next && (
+      {inTrip && (
+        <View style={styles.section}>
+          <SectionTitle
+            trailing={
+              todayWeather ? (
+                <AppText variant="small" weight="bold" tone="muted" accessibilityLabel={`${describeWeather(todayWeather.code).label}, máxima ${todayWeather.max} graus, mínima ${todayWeather.min}`}>
+                  {describeWeather(todayWeather.code).emoji} {todayWeather.max}° / {todayWeather.min}°
+                  {todayWeather.rain != null && todayWeather.rain >= 30 ? ` · ☔ ${todayWeather.rain}%` : ''}
+                </AppText>
+              ) : undefined
+            }>
+            {`Hoje · Dia ${todayIndex + 1} de ${tripDayList.length}`}
+          </SectionTitle>
+          {todayAgenda.length > 0 ? (
+            <AgendaList tripId={id} items={todayAgenda} />
+          ) : (
+            <Surface style={styles.next}>
+              <AppText variant="bodyStrong" style={styles.flex}>
+                Dia livre! Nada marcado para hoje.
+              </AppText>
+            </Surface>
+          )}
+          <View style={styles.quick}>
+            <PillButton icon="wallet2" label="Carteira" onPress={() => router.push({ pathname: '/viagem/[id]/carteira', params: { id } })} accessibilityLabel="Abrir carteira de viagem" />
+            <PillButton icon="alert" label="Emergência" onPress={() => router.push({ pathname: '/viagem/[id]/emergencia', params: { id } })} accessibilityLabel="Abrir telefones de emergência" />
+            <PillButton icon="calendar" label="Dia completo" onPress={() => router.navigate({ pathname: '/viagem/[id]/roteiro', params: { id } })} accessibilityLabel="Ver o dia no roteiro" />
+          </View>
+        </View>
+      )}
+
+      {!inTrip && next && (
         <View style={styles.section}>
           <SectionTitle>Próximo compromisso</SectionTitle>
           <Pressable onPress={next.onPress} accessibilityRole="button" accessibilityLabel={`${next.title}, ${next.sub}`}>
@@ -239,6 +279,7 @@ const styles = StyleSheet.create({
   stat: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 16, gap: 2 },
   statValue: { fontSize: 22, lineHeight: 28 },
   section: { gap: 10 },
+  quick: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   next: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14 },
   nextIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   budget: { padding: 16, gap: 10 },

@@ -6,7 +6,7 @@ Viagem: setembro de 2027. Ordem sugerida: 1 → 2 → 3 → 4 → 5.
 | # | Demanda | Status |
 |---|---|---|
 | 1 | Modo offline | ✅ Concluída |
-| 2 | Tela "Hoje" + Carteira de viagem | A fazer |
+| 2 | Tela "Hoje" + Carteira de viagem | ✅ Concluída |
 | 3 | Planejamento mais rápido | A fazer |
 | 4 | Lembretes + gasto rápido | A fazer |
 | 5 | Pós-viagem: resumo e diário | A fazer |
@@ -28,15 +28,15 @@ Viagem: setembro de 2027. Ordem sugerida: 1 → 2 → 3 → 4 → 5.
 **Pronto quando:** em modo avião, o app abre, mostra tudo e aceita um gasto novo; ao religar a internet, o gasto
 aparece para os outros viajantes. *(Testado: 7 passos, na versão de produção com o Supabase local.)*
 
-## 2. Tela "Hoje" + Carteira de viagem
+## 2. Tela "Hoje" + Carteira de viagem ✅
 
 **Objetivo:** abriu o app durante a viagem, já sabe o que fazer.
 
-- [ ] **Hoje:** compromissos do dia em ordem, com horário, endereço e botão "Como chegar" (Google/Apple Maps) e previsão do tempo (Open-Meteo, grátis).
-- [ ] **Carteira:** códigos de reserva, cartões de embarque e vouchers num só lugar, com copiar código e abrir arquivo.
-- [ ] **Emergência:** telefones de emergência do país e do consulado, disponíveis offline.
+- [x] **Hoje:** nas datas da viagem, a Visão geral começa pela agenda do dia (atividades, reservas, check-out e devoluções), com "Como chegar", copiar código e previsão do tempo (Open-Meteo, grátis). O clima também aparece em cada dia do Roteiro.
+- [x] **Carteira:** códigos de reserva em destaque (toque para copiar), próximas primeiro, "Como chegar" e documentos (passaporte, seguro, visto, vouchers).
+- [x] **Emergência:** telefones do país do destino (tabela no app, funciona offline), contatos da viagem com ligar, e link para o Portal Consular do Itamaraty (o telefone do consulado fica nos contatos).
 
-**Pronto quando:** nas datas da viagem a Visão geral abre no "Hoje" e qualquer código fica a 2 toques.
+**Pronto quando:** nas datas da viagem a Visão geral abre no "Hoje" e qualquer código fica a 2 toques. *(Testado: 8 passos.)*
 
 ## 3. Planejamento mais rápido
 

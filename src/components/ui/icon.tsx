@@ -8,6 +8,25 @@ const shapes = {
   plus: <Path d="M12 5v14M5 12h14" />,
   swap: <Path d="M7 4L3 8l4 4M3 8h14M17 12l4 4-4 4M21 16H7" />,
   chevronRight: <Path d="M9 5l7 7-7 7" />,
+  copy: (
+    <>
+      <Rect x={9} y={9} width={11} height={11} rx={2} />
+      <Path d="M5 15V5a2 2 0 0 1 2-2h8" />
+    </>
+  ),
+  navigate: <Path d="M3 11l18-8-8 18-2-8z" />,
+  wallet2: (
+    <>
+      <Rect x={3} y={6} width={18} height={14} rx={3} />
+      <Path d="M3 10h18M7 3h10" />
+    </>
+  ),
+  alert: (
+    <>
+      <Path d="M12 3l10 18H2z" />
+      <Path d="M12 10v5M12 18v.01" />
+    </>
+  ),
   search: (
     <>
       <Circle cx={11} cy={11} r={7} />

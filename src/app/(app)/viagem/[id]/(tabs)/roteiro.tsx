@@ -11,6 +11,7 @@ import { AppText } from '@/components/ui/text';
 import { SkeletonBlock } from '@/components/skeleton';
 import { useActivities } from '@/data/trip-content';
 import { useTrip } from '@/data/trips';
+import { describeWeather, useTripWeather } from '@/data/weather';
 import { eachDay, formatDayMonth, formatTime, formatWeekdayDayMonth, parseISODate, toISODate, weekdayShort } from '@/lib/format';
 import { ActivityCategoryLabels, activityTint } from '@/lib/labels';
 import { useAppTheme } from '@/theme/theme-provider';
@@ -19,6 +20,7 @@ import { useTripId } from '@/providers/trip-id';
 export default function ItineraryScreen() {
   const id = useTripId();
   const trip = useTrip(id);
+  const weather = useTripWeather(trip.data?.destinations);
   const activities = useActivities(id);
   const { colors, scheme } = useAppTheme();
   const space = useTabBarSpace(true);
@@ -85,6 +87,13 @@ export default function ItineraryScreen() {
             </AppText>
           )}
         </View>
+        {weather.forecast[day] && (
+          <AppText variant="small" weight="semibold" tone="muted">
+            {describeWeather(weather.forecast[day].code).emoji} {describeWeather(weather.forecast[day].code).label} · {weather.forecast[day].max}° /{' '}
+            {weather.forecast[day].min}°
+            {weather.forecast[day].rain != null ? ` · chuva ${weather.forecast[day].rain}%` : ''}
+          </AppText>
+        )}
 
         {activities.isPending && (
           <>

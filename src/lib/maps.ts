@@ -22,3 +22,10 @@ export function openRoute(places: string[]) {
     `https://www.google.com/maps/dir/?api=1&origin=${encoded[0]}&destination=${encoded[encoded.length - 1]}${waypoints ? `&waypoints=${waypoints}` : ''}`,
   );
 }
+
+/** "Como chegar": rota do lugar atual até o endereço, no app de mapas do aparelho. */
+export function openDirections(place: string) {
+  const q = encodeURIComponent(place);
+  const url = Platform.OS === 'ios' ? `https://maps.apple.com/?daddr=${q}` : `https://www.google.com/maps/dir/?api=1&destination=${q}`;
+  return Linking.openURL(url);
+}

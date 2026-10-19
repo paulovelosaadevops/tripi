@@ -5,6 +5,7 @@ import { useSettlements } from '@/data/settle';
 import { useActivities, useChecklist, useExpenses, useReservations, useTripRealtime } from '@/data/trip-content';
 import { useContacts, useDocuments, useNotes } from '@/data/trip-extras';
 import { useTrip, useTripMembers } from '@/data/trips';
+import { useTripWeather } from '@/data/weather';
 import { TripIdProvider } from '@/providers/trip-id';
 
 export default function TripLayout() {
@@ -33,6 +34,8 @@ export default function TripLayout() {
         <Stack.Screen name="cambio" />
         <Stack.Screen name="acerto" />
         <Stack.Screen name="busca" />
+        <Stack.Screen name="carteira" />
+        <Stack.Screen name="emergencia" />
       </Stack>
     </TripIdProvider>
   );
@@ -54,4 +57,5 @@ function useWholeTripCached(id: string) {
   useDocuments(id);
   useSettlements(id);
   useRates(trip.data?.local_currency);
+  useTripWeather(trip.data?.destinations);
 }
