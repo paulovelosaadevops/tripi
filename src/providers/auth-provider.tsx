@@ -18,6 +18,7 @@ type AuthContextValue = {
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
+  resendConfirmation: (email: string) => Promise<void>;
   signInWithProvider: (provider: OAuthProvider) => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -35,6 +36,7 @@ export function authErrorMessage(error: unknown): string {
   if (/email not confirmed/i.test(message)) return 'Confirme seu e-mail pelo link que enviamos antes de entrar.';
   if (/already registered|already exists/i.test(message)) return 'Já existe uma conta com esse e-mail.';
   if (/password should be at least/i.test(message)) return 'A senha precisa ter pelo menos 8 caracteres.';
+  if (/security purposes/i.test(message)) return 'Aguarde um minuto antes de pedir outro e-mail.';
   if (/rate limit|too many/i.test(message)) return 'Muitas tentativas. Espere um pouco e tente de novo.';
   if (/network|fetch/i.test(message)) return 'Sem conexão com a internet. Tente de novo.';
   if (/cancel/i.test(message)) return 'Login cancelado.';
@@ -122,6 +124,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (!code) throw new Error('Resposta de login sem código');
         const exchange = await supabase.auth.exchangeCodeForSession(code);
         if (exchange.error) throw exchange.error;
+      },
+      async resendConfirmation(email) {
+        const { error } = await supabase.auth.resend({
+          type: 'signup',
+          email: email.trim(),
+          options: { emailRedirectTo: emailLinkTarget('/auth/confirmar?tipo=cadastro') },
+        });
+        if (error) throw error;
       },
       async sendPasswordReset(email) {
         const { error } = await supabaseEmailLinks.auth.resetPasswordForEmail(email.trim(), {

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { PendingInviteNotice, ResendConfirmation } from '@/components/auth-extras';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/field';
 import { TripiMark } from '@/components/ui/icon';
@@ -62,6 +63,7 @@ export default function LoginScreen() {
         <AppText tone={dark ? 'muted' : 'heroMuted'}>Roteiro, reservas e gastos sincronizados no seu celular.</AppText>
       </View>
 
+      <PendingInviteNotice />
       <Surface variant={dark ? 'hero' : 'card'} radius={28} style={[styles.card, !dark && styles.flatCard]}>
         {showAppleLogin && (
           <Button
@@ -134,6 +136,7 @@ export default function LoginScreen() {
             {error}
           </AppText>
         )}
+        {error === authErrorMessage(new Error('Email not confirmed')) && <ResendConfirmation email={email} />}
         <Button label="Entrar" loading={busy === 'email'} onPress={submit} />
       </Surface>
 
@@ -165,7 +168,8 @@ const styles = StyleSheet.create({
   logo: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   wordmark: { letterSpacing: -1 },
   card: { padding: 20, gap: 14 },
-  flatCard: { borderWidth: 0, backgroundColor: 'transparent', padding: 0, marginTop: 8 },
+  // Sem fundo nem margem interna: sem cantos arredondados também (cortavam o "E" de "E-mail").
+  flatCard: { borderWidth: 0, borderRadius: 0, backgroundColor: 'transparent', padding: 0, marginTop: 8 },
   divider: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   line: { flex: 1, height: 1 },
   passwordInput: { paddingRight: 84 },

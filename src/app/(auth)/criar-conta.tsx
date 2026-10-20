@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { PendingInviteNotice, ResendConfirmation } from '@/components/auth-extras';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
@@ -47,6 +48,11 @@ export default function CreateAccountScreen() {
         <AppText tone="muted">
           Enviamos um link para {email.trim()}. Toque nele para ativar a conta e depois entre com seu e-mail e senha.
         </AppText>
+        <AppText variant="small" tone="muted">
+          Não chegou em alguns minutos? Confira a pasta de spam ou lixo eletrônico e, se precisar, peça outro.
+        </AppText>
+        <ResendConfirmation email={email} />
+        <PendingInviteNotice />
         <Button label="Voltar ao login" onPress={() => router.replace('/login')} />
       </Screen>
     );
@@ -56,6 +62,7 @@ export default function CreateAccountScreen() {
     <Screen
       header={<ScreenHeader title="Criar conta" />}
       footer={<Button label="Criar conta" loading={busy} onPress={submit} />}>
+      <PendingInviteNotice />
       <AppText tone="muted">Sua conta guarda as viagens na nuvem e sincroniza com quem viaja com você.</AppText>
       {showAppleLogin && (
         <Button label="Continuar com Apple" variant="secondary" onPress={() => signInWithProvider('apple').catch((e) => setError(authErrorMessage(e)))} />

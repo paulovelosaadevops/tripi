@@ -18,6 +18,7 @@ import { queryClient } from '@/data/query-client';
 // Registram as alterações que funcionam offline antes de a fila salva ser retomada.
 import '@/data/trip-content';
 import '@/data/trip-extras';
+import { usePendingInvite } from '@/lib/pending-invite';
 import { registerServiceWorker } from '@/lib/service-worker';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { AuthProvider, useAuth } from '@/providers/auth-provider';
@@ -63,6 +64,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
   const { session, isLoading } = useAuth();
   const { colors } = useAppTheme();
   const ready = fontsLoaded && !isLoading;
+  usePendingInvite(Boolean(session), ready);
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
