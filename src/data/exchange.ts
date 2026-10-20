@@ -52,3 +52,19 @@ export function useHomeCurrency(): string {
   const profile = useProfile(session?.user.id);
   return profile.data?.home_currency ?? 'BRL';
 }
+
+/** Cotação de 1 `base` em `quote` numa data (para mostrar a variação da semana). */
+export function useRateOn(base: string | undefined, quote: string | undefined, date: string) {
+  return useQuery({
+    queryKey: ['rate-on', base, quote, date],
+    enabled: Boolean(base && quote && base !== quote),
+    staleTime: Infinity,
+    retry: 1,
+    queryFn: async (): Promise<number | null> => {
+      const response = await fetch(`${API}?base=${encodeURIComponent(base!)}&quotes=${encodeURIComponent(quote!)}&date=${date}`);
+      if (!response.ok) return null;
+      const list = (await response.json()) as ApiRate[];
+      return list[0]?.rate ?? null;
+    },
+  });
+}

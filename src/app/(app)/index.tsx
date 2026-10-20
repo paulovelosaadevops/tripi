@@ -3,15 +3,16 @@ import { RefreshControl, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TripsSkeleton } from '@/components/skeleton';
-import { NextTripCard, TripRow } from '@/components/trip-cards';
+import { FeaturedTrip } from '@/components/home-featured';
+import { TripRow } from '@/components/trip-cards';
 import { Button, FloatingButton, IconButton } from '@/components/ui/button';
 import { TripiMark } from '@/components/ui/icon';
 import { ErrorView, Screen, SectionTitle } from '@/components/ui/layout';
 import { Surface } from '@/components/ui/surface';
 import { AppText } from '@/components/ui/text';
-import { useChecklist } from '@/data/trip-content';
-import { groupTrips, useProfile, useTrips } from '@/data/trips';
-import { firstName, initials, toISODate } from '@/lib/format';
+import { convert, useHomeCurrency, useRates } from '@/data/exchange';
+import { groupTrips, usePastTripExpenses, useProfile, useTrips } from '@/data/trips';
+import { firstName, formatMoney, initials, toISODate } from '@/lib/format';
 import type { Trip } from '@/lib/types';
 import { useAuth } from '@/providers/auth-provider';
 import { useAppTheme } from '@/theme/theme-provider';
@@ -28,6 +29,7 @@ export default function MyTripsScreen() {
   const isEmpty = trips.data?.length === 0;
 
   const insets = useSafeAreaInsets();
+  const pastTotals = usePastTotals(groups?.past ?? []);
 
   return (
     <View style={styles.flex}>
@@ -52,12 +54,7 @@ export default function MyTripsScreen() {
         {isEmpty && <FirstTrip />}
         {groups && !isEmpty && (
           <>
-            {groups.next && (
-              <View style={styles.section}>
-                <SectionTitle>Próxima viagem</SectionTitle>
-                <NextTripWithChecklist trip={groups.next} />
-              </View>
-            )}
+            {groups.next && <FeaturedTrip trip={groups.next} />}
             {groups.upcoming.length > 0 && (
               <View style={styles.section}>
                 <SectionTitle>Depois</SectionTitle>
@@ -78,7 +75,7 @@ export default function MyTripsScreen() {
               <View style={styles.section}>
                 <SectionTitle>Anteriores</SectionTitle>
                 {groups.past.map((trip) => (
-                  <TripRow key={trip.id} trip={trip} past onPress={() => openTrip(trip)} />
+                  <TripRow key={trip.id} trip={trip} past extra={pastTotals.get(trip.id)} onPress={() => openTrip(trip)} />
                 ))}
               </View>
             )}
@@ -91,16 +88,20 @@ export default function MyTripsScreen() {
   );
 }
 
-function NextTripWithChecklist({ trip }: { trip: Trip }) {
-  const checklist = useChecklist(trip.id);
-  const items = checklist.data ?? [];
-  return (
-    <NextTripCard
-      trip={trip}
-      onPress={() => openTrip(trip)}
-      checklist={{ done: items.filter((i) => i.done).length, total: items.length }}
-    />
-  );
+/** "R$ 12.340 gastos" em cada viagem já feita, na moeda de casa (uma consulta para todas). */
+function usePastTotals(past: Trip[]) {
+  const home = useHomeCurrency();
+  const rates = useRates(home);
+  const expenses = usePastTripExpenses(past.map((t) => t.id));
+  const totals = new Map<string, string>();
+  for (const trip of past) {
+    const rows = (expenses.data ?? []).filter((e) => e.trip_id === trip.id);
+    if (rows.length === 0) continue;
+    const values = rows.map((e) => convert(Number(e.amount), e.currency, home, rates.data));
+    if (values.some((v) => v == null)) continue;
+    totals.set(trip.id, `${formatMoney(values.reduce<number>((sum, v) => sum + (v ?? 0), 0), home)} gastos`);
+  }
+  return totals;
 }
 
 /** Estado vazio do primeiro uso (tela 18 do protótipo). */

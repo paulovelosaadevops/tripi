@@ -124,3 +124,16 @@ export function useRemoveMember(tripId: string) {
     },
   });
 }
+
+/** Total gasto por viagem já feita, numa consulta só (para a lista "Anteriores"). */
+export function usePastTripExpenses(tripIds: string[]) {
+  return useQuery({
+    queryKey: ['past-expenses', tripIds.join(',')],
+    enabled: tripIds.length > 0,
+    staleTime: 60 * 60 * 1000,
+    queryFn: async () =>
+      unwrap<{ trip_id: string; amount: number; currency: string }[]>(
+        await supabase.from('expenses').select('trip_id, amount, currency').in('trip_id', tripIds),
+      ),
+  });
+}
