@@ -27,11 +27,17 @@ const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPAB
   auth: { persistSession: false },
 });
 
-webpush.setVapidDetails(
-  Deno.env.get('VAPID_SUBJECT') ?? 'mailto:tripi@example.com',
-  Deno.env.get('VAPID_PUBLIC_KEY')!,
-  Deno.env.get('VAPID_PRIVATE_KEY')!,
-);
+/** Segredos que faltam ou estão inválidos (a função responde com isso em vez de cair). */
+function configProblem(): string | null {
+  const missing = ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT', 'CRON_SECRET'].filter((name) => !Deno.env.get(name)?.trim());
+  if (missing.length) return `Faltam os segredos: ${missing.join(', ')} (Edge Functions › Secrets).`;
+  try {
+    webpush.setVapidDetails(Deno.env.get('VAPID_SUBJECT')!.trim(), Deno.env.get('VAPID_PUBLIC_KEY')!.trim(), Deno.env.get('VAPID_PRIVATE_KEY')!.trim());
+  } catch (error) {
+    return `Segredos VAPID inválidos: ${(error as Error).message}. VAPID_SUBJECT precisa começar com "mailto:".`;
+  }
+  return null;
+}
 
 /** "2027-09-10T18:30" no fuso `timeZone` → instante (ms desde 1970). */
 function localToInstant(local: string, timeZone: string): number {
@@ -205,7 +211,13 @@ Deno.serve(async (req) => {
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 
-  const cronSecret = Deno.env.get('CRON_SECRET');
+  const problem = configProblem();
+  if (problem) {
+    console.error(problem);
+    return json({ error: problem }, 500);
+  }
+
+  const cronSecret = Deno.env.get('CRON_SECRET')?.trim();
   if (cronSecret && req.headers.get('x-cron-secret') === cronSecret) {
     const body = await req.json().catch(() => ({}));
     const now = typeof body.agora === 'string' ? Date.parse(body.agora) : Date.now();
